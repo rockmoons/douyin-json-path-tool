@@ -1,0 +1,31 @@
+{
+  "applicationId": "com.douyin.json-pathtool",
+  "version": "1.0.0",
+  "defaultMode": "window",
+  "port": 0,
+  "documentRoot": "/resources/",
+  "url": "/index.html",
+  "enableServer": true,
+  "enableNativeAPI": false,
+  "tokenSecurity": "one-time",
+  "modes": {
+    "window": {
+      "title": "抖音 JSON 路径抽取器",
+      "width": 1400,
+      "height": 900,
+      "minWidth": 1000,
+      "minHeight": 600,
+      "fullScreen": false,
+      "resizable": true,
+      "borderless": false
+    }
+  },
+  "cli": {
+    "binaryName": "douyin-json-tool",
+    "resourcesPath": "/resources/",
+    "extensionsPath": "/extensions/",
+    "clientLibrary": "/resources/assets/neutralino.js",
+    "binaryVersion": "5.8.0",
+    "clientVersion": "5.8.0"
+  }
+}

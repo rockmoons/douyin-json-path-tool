@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抖音 JSON 路径抽取器</title>
+<style>
+/* ==================== CSS Variables & Base ==================== */
+:root {
+  --c-bg: #0b0f18;
+  --c-surface: #131a2b;
+  --c-surface2: #192135;
+  --c-border: #25304a;
+  --c-border-light: #2a3555;
+  --c-primary: #3B82F6;
+  --c-primary-dim: #2563EB;
+  --c-primary-glow: rgba(59,130,246,0.25);
+  --c-success: #10B981;
+  --c-error: #EF4444;
+  --c-warning: #F59E0B;
+  --c-purple: #8B5CF6;
+  --c-text: #e2e8f0;
+  --c-text-dim: #94a3b8;
+  --c-text-muted: #64748b;
+  --c-highlight: #fef08a;
+  --c-highlight-bg: rgba(254,240,138,0.18);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+  --font-body: 'Inter', system-ui, -apple-system, 'PingFang SC', sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 280ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; scrollbar-width:thin; scrollbar-color:transparent transparent; }
+*:hover { scrollbar-color:var(--c-border) transparent; }
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:transparent; border-radius:3px; }
+*:hover::-webkit-scrollbar-thumb { background:var(--c-border); }
+::-webkit-scrollbar-thumb:hover { background:var(--c-text-muted); }
+html, body { height:100%; }
+body {
+  font-family: var(--font-body);
+  background: var(--c-bg);
+  color: var(--c-text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--c-primary); color: #fff; }
+
+/* ==================== Layout ==================== */
+#app { display:flex; flex-direction:column; height:100vh; }
+#header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 20px; background: var(--c-surface); border-bottom:1px solid var(--c-border);
+  flex-shrink:0; z-index:10;
+}
+#header-left { display:flex; align-items:center; gap:12px; }
+#header-left .icon { width:28px; height:28px;
+  background: linear-gradient(135deg, var(--c-primary), var(--c-purple));
+  border-radius:7px; display:flex; align-items:center; justify-content:center;
+  font-size:14px; color:#fff; font-weight:700;
+}
+#header-left h1 { font-family: var(--font-display); font-size:15px; font-weight:700; letter-spacing:-0.3px; }
+#header-right { display:flex; align-items:center; gap:10px; }
+#api-key-input {
+  background: var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
+  color: var(--c-text); padding:6px 12px; font-size:12px; width:320px;
+  font-family: var(--font-mono); transition: border var(--transition-fast);
+}
+#api-key-input:focus { outline:none; border-color: var(--c-primary); box-shadow:0 0 0 3px var(--c-primary-glow); }
+#api-key-input::placeholder { color: var(--c-text-muted); }
+#api-key-save-label { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--c-text-muted); cursor:pointer; white-space:nowrap; user-select:none; }
+#api-key-save-label:hover { color:var(--c-text-dim); }
+#api-key-save { accent-color: var(--c-primary); cursor:pointer; }
+#header-version { font-size:11px; color: var(--c-text-muted); }
+#header-help { font-size:11px; color: var(--c-text-dim); cursor:pointer; transition:color var(--transition-fast); }
+#header-help:hover { color: var(--c-primary); }
+
+#main { display:flex; flex:1; overflow:hidden; gap:1px; background: var(--c-border); position:relative; }
+.resizer { width:1px; background:transparent; cursor:col-resize; transition:background 0.2s; z-index:10; }
+.resizer:hover, .resizer.resizing { background:var(--c-primary); }
+
+.panel {
+  background: var(--c-surface); display:flex; flex-direction:column;
+  flex:1; min-width:0; overflow:hidden;
+}
+.panel-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px; border-bottom:1px solid var(--c-border); flex-shrink:0;
+  background: var(--c-surface2);
+}
+.panel-header h2 { font-size:12px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase; color: var(--c-text-dim); }
+.panel-body { flex:1; overflow:auto; padding:12px; }
+.panel-footer { border-top:1px solid var(--c-border); padding:8px 12px; flex-shrink:0; font-size:11px; color:var(--c-text-muted); }
+
+/* ==================== Left Panel ==================== */
+#json-input {
+  width:100%; min-height:180px; background: var(--c-surface2); border:1px solid var(--c-border);
+  border-radius:var(--radius-sm); color: var(--c-text); padding:12px; font-family: var(--font-mono);
+  font-size:12px; line-height:1.6; resize:vertical; transition:border var(--transition-fast);
+}
+#json-input:focus { outline:none; border-color: var(--c-primary); }
+#json-input.error { border-color: var(--c-error); box-shadow:0 0 0 3px rgba(239,68,68,0.15); }
+#json-error-msg { display:none; color: var(--c-error); font-size:11px; margin-top:6px; white-space:pre-wrap; }
+#btn-format {
+  margin-top:8px; width:100%; padding:8px; background: var(--c-primary); color:#fff;
+  border:none; border-radius:var(--radius-sm); font-size:12px; font-weight:600; cursor:pointer;
+  transition:all var(--transition-fast); letter-spacing:0.2px;
+}
+#btn-format:hover { background: var(--c-primary-dim); box-shadow:0 0 12px var(--c-primary-glow); }
+#tree-container { margin-top:10px; }
+#tree-container .empty-state { text-align:center; padding:40px 20px; color: var(--c-text-muted); font-size:12px; }
+
+/* Tree styles */
+.tree-node { margin-left:0; user-select:none; }
+.tree-node .node-row { display:flex; align-items:center; padding:3px 0; padding-left:calc(var(--depth,0)*18px); cursor:default; border-radius:3px; transition:background 80ms; font-size:12px; }
+.tree-node .node-row:hover { background: rgba(255,255,255,0.03); }
+.tree-node .node-row.highlight { background: var(--c-highlight-bg); animation: highlightPulse 2s ease-out; }
+@keyframes highlightPulse {
+  0% { background: rgba(254,240,138,0.4); }
+  100% { background: var(--c-highlight-bg); }
+}
+.tree-arrow { width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color: var(--c-text-muted); flex-shrink:0; transition:transform var(--transition-fast); font-size:10px; }
+.tree-arrow.expanded { transform:rotate(90deg); }
+.tree-arrow.hidden { visibility:hidden; }
+.tree-key { color: #e879f9; margin:0 4px; font-weight:500; white-space:nowrap; }
+.tree-colon { color: var(--c-text-muted); }
+.tree-val { margin-left:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:help; position:relative; }
+.tree-link { cursor:pointer; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px; text-decoration-color:inherit; }
+.tree-link:hover { color:#60a5fa !important; text-decoration-style:solid; }
+.tree-val.str { color: #4ade80; }
+.tree-val.num { color: #60a5fa; }
+.tree-val.bool { color: #fbbf24; }
+.tree-val.null { color: var(--c-text-muted); font-style:italic; }
+.tree-brace { color: var(--c-text-dim); margin:0 2px; }
+.tree-count { color: var(--c-text-muted); font-size:11px; margin-left:4px; }
+.tree-type-hint { color: var(--c-text-muted); font-size:10px; font-style:italic; margin-left:4px; }
+/* Tooltip for truncated values */
+.tree-val[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute; background: #1e293b; color: #e2e8f0; padding:6px 10px;
+  border-radius:4px; font-size:11px; max-width:420px; word-break:break-all;
+  white-space:normal; z-index:100; pointer-events:none;
+  transform:translateY(-100%); box-shadow:0 4px 16px rgba(0,0,0,0.4);
+  border:1px solid var(--c-border);
+}
+
+/* ==================== Middle Panel ==================== */
+#search-box {
+  width:100%; background: var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
+  color: var(--c-text); padding:7px 12px; font-size:12px; margin-bottom:8px; transition:border var(--transition-fast);
+}
+#search-box:focus { outline:none; border-color: var(--c-primary); }
+#batch-actions { display:flex; gap:6px; margin-bottom:8px; }
+.btn-sm {
+  padding:5px 10px; border-radius:var(--radius-sm); font-size:11px; cursor:pointer;
+  border:1px solid var(--c-border); background: var(--c-surface2); color: var(--c-text-dim);
+  transition:all var(--transition-fast); font-weight:500;
+}
+.btn-sm:hover { background: var(--c-border); color: var(--c-text); }
+#btn-clear:hover { border-color: var(--c-error); color: var(--c-error); }
+#btn-filter-empty.active { background: var(--c-error); color:#fff; border-color:var(--c-error); }
+#progress-bar { display:none; font-size:11px; color: var(--c-primary); margin-bottom:6px; text-align:center; }
+#selector-buttons { display:flex; flex-direction:column; gap:0; }
+/* Button tree groups */
+.btn-group { margin:0; }
+.btn-group-header {
+  display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer;
+  font-size:11px; color: var(--c-text-dim); border-bottom:1px solid var(--c-border);
+  user-select:none; transition:background var(--transition-fast);
+  font-family:var(--font-mono); position:sticky; top:0; background:var(--c-surface); z-index:2;
+}
+.btn-group-header:hover { background: var(--c-surface2); }
+.btn-group-header .grp-arrow {
+  width:14px; height:14px; display:inline-flex; align-items:center; justify-content:center;
+  font-size:9px; color: var(--c-text-muted); flex-shrink:0; transition:transform var(--transition-fast);
+}
+.btn-group-header .grp-arrow.expanded { transform:rotate(90deg); }
+.btn-group-header .grp-path { color: var(--c-text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.btn-group-header .grp-count { margin-left:auto; font-size:10px; color: var(--c-text-muted); }
+.btn-group-body { overflow:hidden; }
+.btn-group-body.collapsed { display:none; }
+/* Leaf button - full width single row */
+.leaf-btn {
+  display:flex; align-items:center; gap:6px; width:100%;
+  padding:5px 12px 5px 8px; border-radius:0; font-size:12px; cursor:pointer;
+  border:none; border-bottom:1px solid rgba(255,255,255,0.03);
+  background: transparent; color: var(--c-text-dim);
+  transition:all var(--transition-fast); position:relative;
+  text-align:left; font-family: var(--font-mono);
+}
+.leaf-btn:hover { background: var(--c-surface2); color: var(--c-text); }
+.leaf-btn .btn-en { font-size:12px; font-weight:600; color: var(--c-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:0; }
+.leaf-btn .btn-cn { font-size:11px; color: #f59e0b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
+.leaf-btn.state-selected { background: var(--c-primary); color:#fff; border-bottom-color: var(--c-primary-dim); }
+.leaf-btn.state-selected .btn-en { color:#fff; }
+.leaf-btn.state-selected .btn-cn { color:#fcd34d; }
+.leaf-btn.state-previewed {
+  border:1px dashed var(--c-primary); border-bottom-color: var(--c-primary);
+  animation: btnRowPulse 1.2s ease-in-out infinite;
+  background: rgba(59,130,246,0.06);
+}
+@keyframes btnRowPulse {
+  0%,100% { box-shadow:inset 0 0 0 0 var(--c-primary-glow); }
+  50% { box-shadow:inset 0 0 0 4px rgba(59,130,246,0); }
+}
+.leaf-btn.array-pending { border-left:2px solid var(--c-warning); }
+.leaf-btn.array-pending::after { content:'⟳'; font-size:13px; margin-left:auto; color:var(--c-warning); }
+.leaf-btn.array-empty { color: var(--c-text-muted); cursor:not-allowed; opacity:0.4; }
+/* Value indicators */
+.leaf-btn .val-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-right:2px; }
+.leaf-btn .val-dot.empty { background: var(--c-error); box-shadow:0 0 6px rgba(239,68,68,0.5); }
+.leaf-btn .val-dot.has {  background: var(--c-success); box-shadow:0 0 6px rgba(16,185,129,0.5); }
+.leaf-btn.filtered-empty { display:none !important; }
+.leaf-btn .edit-idx { margin-left:auto; font-size:10px; cursor:pointer; color: inherit; flex-shrink:0; display:none; }
+.leaf-btn.state-previewed .edit-idx,
+.leaf-btn.state-selected .edit-idx { display:inline; }
+.empty-state-msg { text-align:center; padding:40px 20px; color: var(--c-text-muted); font-size:12px; }
+
+/* Translation table */
+#translation-table-wrap { margin-top:12px; }
+#translation-table-wrap h3 { font-size:11px; font-weight:600; color:var(--c-text-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px; }
+#translation-table { width:100%; border-collapse:collapse; font-size:11px; }
+#translation-table th { text-align:left; padding:4px 8px; color:var(--c-text-muted); font-weight:500; border-bottom:1px solid var(--c-border); }
+#translation-table td { padding:4px 8px; color: var(--c-text-dim); }
+#translation-table tr:nth-child(odd) td { background:rgba(255,255,255,0.015); }
+.trans-source { font-size:9px; padding:1px 5px; border-radius:3px; margin-left:4px; }
+.trans-source.dict { background:rgba(139,92,246,0.2); color:#c4b5fd; }
+.trans-source.api  { background:rgba(16,185,129,0.2); color:#6ee7b7; }
+.trans-source.local { background:rgba(100,116,139,0.2); color:#94a3b8; }
+
+/* ==================== Right Panel ==================== */
+#output-fields-list { margin-bottom:12px; }
+.output-field-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.03); }
+.output-field-row .output-key-input {
+  width:160px; flex-shrink:0; background: var(--c-surface2); border:1px solid var(--c-border);
+  border-radius:var(--radius-sm); color: #fbbf24; padding:4px 8px; font-size:11px; font-family:var(--font-mono);
+  transition:border var(--transition-fast);
+}
+.output-field-row .output-key-input:focus { outline:none; border-color: var(--c-primary); }
+.output-field-row .output-path-display {
+  flex:1; font-size:11px; color: var(--c-text-dim); font-family: var(--font-mono);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; user-select:all; cursor:text;
+}
+.output-field-row .output-remove { color:var(--c-text-muted); cursor:pointer; font-size:14px; padding:0 4px; transition:color var(--transition-fast); flex-shrink:0; }
+.output-field-row .output-remove:hover { color: var(--c-error); }
+#output-code-block {
+  background: var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
+  padding:14px 16px; font-family:var(--font-mono); font-size:12px; line-height:1.8; color: #4ade80;
+  white-space:pre-wrap; overflow:auto; max-height:400px; position:relative;
+}
+#btn-copy {
+  position:absolute; top:8px; right:8px; padding:4px 10px; background: var(--c-primary); color:#fff;
+  border:none; border-radius:var(--radius-sm); font-size:11px; cursor:pointer;
+  transition:all var(--transition-fast); font-weight:500;
+}
+#btn-copy:hover { background: var(--c-primary-dim); }
+#btn-copy.copied { background: var(--c-success); }
+#output-stats { font-size:11px; color: var(--c-text-muted); margin-bottom:8px; }
+
+/* ==================== Modal/Dialog ==================== */
+.modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65);
+  z-index:100; align-items:center; justify-content:center; backdrop-filter:blur(4px);
+}
+.modal-overlay.active { display:flex; }
+.modal-box {
+  background: var(--c-surface); border:1px solid var(--c-border); border-radius:var(--radius);
+  max-width:600px; width:90%; max-height:70vh; overflow:auto; padding:20px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+.modal-box h3 { font-size:14px; font-weight:600; margin-bottom:12px; color: var(--c-text); }
+.modal-box .array-step { color: var(--c-warning); font-size:12px; margin-bottom:8px; }
+.modal-array-list { display:flex; flex-direction:column; gap:6px; }
+.modal-array-item {
+  padding:8px 12px; background: var(--c-surface2); border:1px solid var(--c-border);
+  border-radius:var(--radius-sm); cursor:pointer; transition:all var(--transition-fast); font-size:12px; color: var(--c-text);
+}
+.modal-array-item:hover { border-color: var(--c-primary); background: rgba(59,130,246,0.08); }
+.modal-array-item.basic-item { font-family:var(--font-mono); }
+.modal-array-table { width:100%; border-collapse:collapse; font-size:11px; margin-bottom:8px; }
+.modal-array-table th { text-align:left; padding:4px 8px; color:var(--c-text-muted); border-bottom:1px solid var(--c-border); }
+.modal-array-table td { padding:4px 8px; color:var(--c-text-dim); cursor:pointer; }
+.modal-array-table tr:hover td { background:rgba(59,130,246,0.08); }
+.modal-more { font-size:11px; color:var(--c-text-muted); text-align:center; padding:8px; }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+.modal-btn {
+  padding:6px 16px; border-radius:var(--radius-sm); font-size:12px; cursor:pointer;
+  border:1px solid var(--c-border); background: var(--c-surface2); color: var(--c-text-dim);
+  transition:all var(--transition-fast);
+}
+.modal-btn:hover { background: var(--c-border); }
+.modal-btn.primary { background: var(--c-primary); color:#fff; border-color:var(--c-primary); }
+.modal-btn.primary:hover { background: var(--c-primary-dim); }
+.modal-cancel { cursor:pointer; color:var(--c-text-muted); }
+.modal-cancel:hover { color:var(--c-text); }
+
+/* ==================== Toast / Confirm Dialog ==================== */
+.toast {
+  position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:200;
+  padding:10px 20px; border-radius:var(--radius-sm); font-size:12px; font-weight:500;
+  opacity:0; transition:opacity var(--transition-smooth); pointer-events:none;
+}
+.toast.show { opacity:1; }
+.toast.success { background: var(--c-success); color:#fff; }
+.toast.error { background: var(--c-error); color:#fff; }
+.toast.warning { background: var(--c-warning); color:#000; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ===== HEADER ===== -->
+  <div id="header">
+    <div id="header-left">
+      <div class="icon">J</div>
+      <h1>抖音 JSON 路径抽取器</h1>
+    </div>
+    <div id="header-right">
+      <input type="password" id="api-key-input" placeholder="DeepSeek API Key（用于 AI 翻译）" autocomplete="off" />
+      <label id="api-key-save-label" title="记住 API Key，刷新页面不丢失"><input type="checkbox" id="api-key-save" /> 记住</label>
+      <span id="header-version">v1.0</span>
+      <span id="header-help" title="使用说明">ⓘ 帮助</span>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div id="main">
+
+    <!-- LEFT PANEL -->
+    <div class="panel" id="left-panel">
+      <div class="panel-header"><h2>📄 JSON 元数据</h2></div>
+      <div class="panel-body">
+        <textarea id="json-input" placeholder='在此粘贴抖音 API 返回的 JSON 元数据...'></textarea>
+        <div id="json-toolbar" style="display:flex;gap:6px;margin-top:4px;align-items:center;">
+          <button class="btn-sm" id="btn-clear-input" title="清空输入框">🗑 清空</button>
+          <button class="btn-sm" id="btn-copy-input" title="复制输入内容">📋 复制</button>
+          <label title="记住 JSON 内容，刷新不丢失" style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--c-text-muted);cursor:pointer;user-select:none;">
+            <input type="checkbox" id="json-input-save" style="accent-color:var(--c-primary);cursor:pointer;" /> 记住
+          </label>
+        </div>
+        <div id="json-error-msg"></div>
+        <button id="btn-format" type="button">⚡ 格式化</button>
+        <div id="tree-container"><div class="empty-state">等待 JSON 输入...</div></div>
+      </div>
+    </div>
+
+    <div class="resizer" id="resizer-1"></div>
+
+    <!-- MIDDLE PANEL -->
+    <div class="panel" id="middle-panel">
+      <div class="panel-header"><h2>🔑 键名选择器</h2></div>
+      <div class="panel-body">
+        <input type="text" id="search-box" placeholder="搜索字段（英文 / 中文）..." disabled />
+        <div id="batch-actions">
+          <button class="btn-sm" id="btn-select-all" disabled>全选</button>
+          <button class="btn-sm" id="btn-invert" disabled>反选</button>
+          <button class="btn-sm" id="btn-clear" disabled>清空</button>
+          <button class="btn-sm" id="btn-filter-empty" disabled title="仅显示有数据的字段">🔍 过滤空数据</button>
+        </div>
+        <div id="api-status" style="display:none;font-size:10px;padding:3px 8px;border-radius:4px;margin-bottom:4px;text-align:center;"></div>
+        <div id="progress-bar"></div>
+        <div id="selector-buttons">
+          <div class="empty-state-msg">← 请先在左侧粘贴 JSON 并点击格式化</div>
+        </div>
+        <div id="translation-table-wrap" style="display:none;">
+          <h3>📋 翻译对照表</h3>
+          <table id="translation-table"><thead><tr><th>英文</th><th>中文</th><th>来源</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="resizer" id="resizer-2"></div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel" id="right-panel">
+      <div class="panel-header"><h2>📤 JSONPath 输出</h2></div>
+      <div class="panel-body">
+        <div id="output-fields-list">
+          <div class="empty-state-msg">← 请在中间选择要抽取的字段</div>
+        </div>
+        <div id="output-stats" style="display:none;"></div>
+        <div id="output-code-block" style="position:relative;">
+          <button id="btn-copy">📋 一键复制</button>
+          <code id="output-code">{ "fields": {} }</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DEBUG PANEL ===== -->
+<div id="debug-panel" style="display:none;border-top:2px solid var(--c-primary);background:var(--c-surface2);max-height:200px;overflow:auto;flex-shrink:0;">
+  <div id="debug-header" style="display:flex;align-items:center;justify-content:space-between;padding:4px 12px;background:var(--c-surface);cursor:pointer;user-select:none;font-size:11px;color:var(--c-text-dim);">
+    <span id="debug-title">🐛 调试日志 <span id="debug-count" style="color:var(--c-primary);">(0)</span></span>
+    <span id="debug-toggle" style="font-size:10px;">▼</span>
+  </div>
+  <div id="debug-log" style="font-family:var(--font-mono);font-size:10px;line-height:1.5;padding:4px 8px;color:var(--c-text-muted);max-height:180px;overflow:auto;"></div>
+</div>
+<div id="debug-btn-bar" style="position:fixed;bottom:4px;right:8px;z-index:99;display:flex;gap:4px;">
+  <button id="btn-debug-toggle" class="btn-sm" title="开启/关闭调试日志" style="font-size:10px;padding:2px 8px;">🐛</button>
+</div>
+
+<!-- ===== MODAL OVERLAY ===== -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+console.log('🚀 脚本开始加载...');
+
+// Global error handler for visibility
+window.onerror = function(msg, src, line, col, err) {
+  const errBox = document.createElement('div');
+  errBox.style.cssText = 'position:fixed;top:10px;right:10px;z-index:9999;max-width:400px;background:#7f1d1d;color:#fca5a5;padding:12px 16px;border-radius:8px;font-size:12px;font-family:monospace;word-break:break-all;border:1px solid #ef4444;';
+  errBox.textContent = '❌ JS 错误: ' + msg + ' (line ' + line + ')';
+  document.body.appendChild(errBox);
+  setTimeout(() => errBox.remove(), 8000);
+};
+
+window.addEventListener('unhandledrejection', function(e) {
+  const errBox = document.createElement('div');
+  errBox.style.cssText = 'position:fixed;top:10px;right:10px;z-index:9999;max-width:400px;background:#7f1d1d;color:#fca5a5;padding:12px 16px;border-radius:8px;font-size:12px;font-family:monospace;word-break:break-all;border:1px solid #ef4444;';
+  errBox.textContent = '❌ Promise 错误: ' + (e.reason?.message || e.reason);
+  document.body.appendChild(errBox);
+  setTimeout(() => errBox.remove(), 8000);
+});
+
+// ==================== STATE ====================
+let filterEmptyActive = false; // 过滤空数据开关
+let state = {
+  parsedJson: null,
+  treeNodes: null,
+  leafEntries: [],         // LeafPathEntry[]
+  translationCache: {},    // { keyName: chineseName }
+  translationSources: {},  // { keyName: 'dict'|'api'|'local' }
+  lastClickTime: 0,
+  clickThrottle: 200,
+  isFormatting: false,
+};
+
+// ==================== CONSTANTS ====================
+const TRANSLATION_DICT = {
+  code:'状态码', request_id:'请求ID', message:'消息', time:'时间', router:'路由',
+  aweme_id:'作品ID', desc:'描述', caption:'标题', create_time:'创建时间',
+  group_id:'分组ID', media_type:'媒体类型', user_digged:'是否点赞',
+  nickname:'作者昵称', uid:'用户ID', sec_uid:'安全UID', short_id:'短ID',
+  unique_id:'抖音号', signature:'签名', gender:'性别', region:'地区',
+  follower_count:'粉丝数', following_count:'关注数', aweme_count:'作品数',
+  total_favorited:'总被赞数', favoriting_count:'收藏数',
+  digg_count:'点赞数', comment_count:'评论数', share_count:'分享数',
+  download_count:'下载数', collect_count:'收藏数', play_count:'播放数',
+  forward_count:'转发数', exposure_count:'曝光数', admire_count:'赞赏数',
+  recommend_count:'推荐数', whatsapp_share_count:'WhatsApp分享数',
+  play_addr:'播放地址', play_addr_h264:'H264播放地址', cover:'封面',
+  origin_cover:'原始封面', dynamic_cover:'动态封面', download_addr:'下载地址',
+  width:'宽度', height:'高度', ratio:'分辨率', format:'格式',
+  has_watermark:'是否有水印', data_size:'文件大小',
+  url_list:'URL列表', uri:'URI', file_hash:'文件Hash', url_key:'URL键',
+  id_str:'音乐ID', title:'标题', author:'作者', owner_nickname:'创作者昵称',
+  owner_handle:'创作者抖音号', status:'状态',
+  cha_name:'话题名称', cid:'话题ID', user_count:'参与人数', view_count:'浏览数',
+  is_commerce:'是否商业', sub_type:'子类型',
+  share_url:'分享链接', share_title:'分享标题', share_desc:'分享描述',
+  type:'类型', name:'名称', id:'ID', label:'标签', text:'文本',
+  level:'级别', start:'起始位置', end:'结束位置',
+  duration:'时长', bit_rate:'码率', FPS:'帧率', is_h265:'是否H265', is_bytevc1:'是否ByteVC1',
+  gear_name:'档位名称', quality_type:'质量类型', HDR_type:'HDR类型', HDR_bit:'HDR码率',
+  size:'大小', count:'数量',
+};
+
+const ROOT_WORDS = {
+  id:'ID', name:'名称', type:'类型', code:'代码', count:'数量', size:'大小',
+  time:'时间', url:'地址', key:'键', status:'状态', title:'标题', desc:'描述',
+  data:'数据', file:'文件', text:'文本', img:'图片', image:'图片', user:'用户',
+  video:'视频', music:'音乐', audio:'音频', cover:'封面', avatar:'头像',
+  signature:'签名', gender:'性别', region:'地区', level:'级别', format:'格式',
+  author:'作者', owner:'所有者', play:'播放', down:'下', load:'载', up:'上',
+  create:'创建', created:'已创建', modify:'修改', modified:'已修改', update:'更新',
+  updated:'已更新', share:'分享', comment:'评论', like:'赞', digg:'赞',
+  follower:'粉丝', following:'关注', aweme:'作品', favorited:'被赞', favoriting:'收藏',
+  download:'下载', collect:'收藏', forward:'转发', exposure:'曝光', recommend:'推荐',
+  short:'短', unique:'唯一', sec:'安全', nick:'昵称', total:'总',
+  rate:'率', ratio:'比率', quality:'质量', gear:'档位',
+  h264:'H264', h265:'H265', bytevc:'ByteVC', hdr:'HDR',
+  origin:'原始', original:'原始', dynamic:'动态', static:'静态',
+  watermark:'水印', external:'外部', internal:'内部',
+  commerce:'商业', profit:'盈利', price:'价格',
+  preview:'预览', live:'直播',
+  addr:'地址', uri:'URI', hash:'Hash',
+  webp:'WebP', jpeg:'JPEG', png:'PNG', gif:'GIF',
+  // 通用词
+  message:'消息', cache:'缓存', zone:'区域', stamp:'标记', docs:'文档', support:'支持',
+  language:'语言', version:'版本', source:'来源', target:'目标', offset:'偏移',
+  length:'长度', width:'宽度', height:'高度', depth:'深度', weight:'重量',
+  index:'索引', order:'顺序', sort:'排序', filter:'过滤', search:'搜索',
+  page:'页', limit:'限制', cursor:'游标', token:'令牌', secret:'密钥',
+  password:'密码', email:'邮箱', phone:'电话', mobile:'手机', address:'地址',
+  city:'城市', province:'省份', country:'国家', district:'区县',
+  street:'街道', location:'位置', longitude:'经度', latitude:'纬度',
+  content:'内容', body:'正文', summary:'摘要', detail:'详情', info:'信息',
+  config:'配置', setting:'设置', option:'选项', param:'参数', value:'值',
+  result:'结果', output:'输出', input:'输入', error:'错误', warning:'警告',
+  success:'成功', failed:'失败', pending:'待处理', processing:'处理中', done:'完成',
+  enabled:'启用', disabled:'禁用', active:'活跃', inactive:'非活跃',
+  public:'公开', private:'私有', hidden:'隐藏', visible:'可见',
+  tag:'标签', label:'标签', category:'分类', channel:'频道',
+  platform:'平台', device:'设备', browser:'浏览器', os:'系统',
+  lang:'语言', loc:'地区', zh:'中文', en:'英文', cn:'中国',
+  unverified:'未验证', blocked:'已屏蔽', banned:'已封禁',
+  thumb:'缩略图', thumbnail:'缩略图', poster:'封面',
+  description:'描述', remark:'备注', note:'注释',
+  start:'开始', end:'结束', begin:'开始', finish:'结束',
+  min:'最小', max:'最大', avg:'平均', sum:'合计',
+  first:'第一', last:'最后', next:'下一个', prev:'上一个',
+  default:'默认', custom:'自定义', auto:'自动', manual:'手动',
+  product:'商品', order:'订单', payment:'支付', amount:'金额',
+  price:'价格', discount:'折扣', coupon:'优惠券', points:'积分',
+  sender:'发送者', receiver:'接收者', creator:'创建者', editor:'编辑者',
+  sub:'子', main:'主', parent:'父', child:'子', root:'根',
+  api:'接口', sdk:'开发包', web:'网页', app:'应用', service:'服务',
+  date:'日期', month:'月', day:'日', hour:'时', minute:'分', second:'秒',
+  media:'媒体', photo:'照片', picture:'图片', album:'相册',
+  fps:'帧率', bit:'比特', byte:'字节', ext:'扩展', raw:'原始',
+  verified:'认证', vip:'会员', fans:'粉丝', digest:'摘要',
+  schema:'模式', pattern:'模式', template:'模板', theme:'主题',
+  lang:'语言', locale:'语言环境', i18n:'国际化',
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+console.log('🚀 DOMContentLoaded 触发, 开始初始化...');
+
+// ==================== DOM REFS ====================
+const $ = id => document.getElementById(id);
+const jsonInput = $('json-input');
+const jsonErrorMsg = $('json-error-msg');
+const btnFormat = $('btn-format');
+const treeContainer = $('tree-container');
+const searchBox = $('search-box');
+const selectorButtons = $('selector-buttons');
+const apiStatus = $('api-status');
+const progressBar = $('progress-bar');
+const btnSelectAll = $('btn-select-all');
+const btnInvert = $('btn-invert');
+const btnClear = $('btn-clear');
+const btnFilterEmpty = $('btn-filter-empty');
+const btnClearInput = $('btn-clear-input');
+const btnCopyInput = $('btn-copy-input');
+const jsonInputSave = $('json-input-save');
+const debugPanel = $('debug-panel');
+const debugLogEl = $('debug-log');
+const debugCount = $('debug-count');
+const btnDebugToggle = $('btn-debug-toggle');
+const outputFieldsList = $('output-fields-list');
+const outputCodeEl = $('output-code');
+const outputStats = $('output-stats');
+const btnCopy = $('btn-copy');
+const translationTableWrap = $('translation-table-wrap');
+const translationTableBody = $('translation-table').querySelector('tbody');
+const modalOverlay = $('modal-overlay');
+const modalBox = $('modal-box');
+const toast = $('toast');
+const apiKeyInput = $('api-key-input');
+const apiKeySave = $('api-key-save');
+console.log('📎 DOM 引用已获取, btnFormat:', !!btnFormat, ', jsonInput:', !!jsonInput);
+
+// ==================== API KEY PERSISTENCE ====================
+// Load saved API Key
+const savedKey = localStorage.getItem('douyin_json_api_key');
+const savedSave = localStorage.getItem('douyin_json_api_key_save') === 'true';
+if (savedKey && savedSave) {
+  apiKeyInput.value = savedKey;
+  apiKeySave.checked = true;
+}
+
+// Auto-save on input change when checkbox is checked
+apiKeyInput.addEventListener('input', () => {
+  if (apiKeySave.checked) {
+    localStorage.setItem('douyin_json_api_key', apiKeyInput.value);
+  }
+});
+
+// Toggle save: immediately save or clear
+apiKeySave.addEventListener('change', () => {
+  if (apiKeySave.checked) {
+    localStorage.setItem('douyin_json_api_key_save', 'true');
+    localStorage.setItem('douyin_json_api_key', apiKeyInput.value);
+  } else {
+    localStorage.setItem('douyin_json_api_key_save', 'false');
+    localStorage.removeItem('douyin_json_api_key');
+  }
+});
+
+// ==================== JSON INPUT TOOLBAR ====================
+// Load saved JSON
+const savedJson = localStorage.getItem('douyin_json_input');
+const savedJsonSave = localStorage.getItem('douyin_json_input_save') === 'true';
+if (savedJson && savedJsonSave) {
+  jsonInput.value = savedJson;
+  jsonInputSave.checked = true;
+}
+
+// Clear JSON input
+btnClearInput.addEventListener('click', () => {
+  jsonInput.value = '';
+  localStorage.removeItem('douyin_json_input');
+});
+
+// Copy JSON input
+btnCopyInput.addEventListener('click', async () => {
+  const text = jsonInput.value.trim();
+  if (!text) { showToast('无内容可复制', 'warning'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('已复制到剪贴板');
+  } catch { showToast('复制失败', 'error'); }
+});
+
+// Save JSON input to localStorage
+jsonInputSave.addEventListener('change', () => {
+  if (jsonInputSave.checked) {
+    localStorage.setItem('douyin_json_input_save', 'true');
+    localStorage.setItem('douyin_json_input', jsonInput.value);
+  } else {
+    localStorage.setItem('douyin_json_input_save', 'false');
+    localStorage.removeItem('douyin_json_input');
+  }
+});
+jsonInput.addEventListener('input', () => {
+  if (jsonInputSave.checked) {
+    localStorage.setItem('douyin_json_input', jsonInput.value);
+  }
+});
+
+// ==================== TOAST ====================
+function showToast(msg, type='success') {
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// ==================== MODAL ====================
+function showModal(html) {
+  modalBox.innerHTML = html;
+  modalOverlay.classList.add('active');
+}
+function closeModal() { modalOverlay.classList.remove('active'); }
+// Expose to global scope for onclick handlers in modal HTML
+window.closeModal = closeModal;
+window.showModal = showModal;
+modalOverlay.addEventListener('click', e => { if(e.target===modalOverlay) closeModal(); });
+
+// ==================== DEBUG PANEL ====================
+let _debugLogs = [];
+let _debugEnabled = false;
+function debugLog(category, color, msg, detail) {
+  if (!_debugEnabled) return;
+  const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  _debugLogs.push({ time, category, color, msg, detail });
+  renderDebugLog();
+  debugCount.textContent = '(' + _debugLogs.length + ')';
+  console.log(`[${category}] ${msg}`, detail || '');
+}
+function debugLogLeft(path, action) {
+  const btnGroup = selectorButtons.querySelector(`[data-group-path="${cssEscape(path)}"]`);
+  const match = btnGroup ? '✅ 找到对应中树分组' : '❌ 中树无对应分组';
+  debugLog('🟦左树', '#60a5fa', `${action} leftPath=${path}`, match + (btnGroup ? ' → ' + path : ''));
+}
+function debugLogMiddle(path, action) {
+  const leftRow = treeContainer.querySelector(`[data-path="${cssEscape(path)}"]`);
+  const match = leftRow ? '✅ 找到对应左树节点' : '❌ 左树无对应节点';
+  debugLog('🟧中树', '#f59e0b', `${action} midPath=${path}`, match + (leftRow ? ' → ' + path : ''));
+}
+function debugLogBtn(entry, action) {
+  const leftRow = treeContainer.querySelector(`[data-path="${cssEscape(entry.fullJsonPath)}"]`);
+  const match = leftRow ? '✅' : '❌';
+  debugLog('🔘按钮', '#10B981', `${action} ${entry.keyName}${entry.chineseName?'('+entry.chineseName+')':''}`, `${match} path=${entry.fullJsonPath}`);
+}
+function renderDebugLog() {
+  const last = _debugLogs.slice(-200);
+  debugLogEl.innerHTML = last.map(l =>
+    `<div><span style="color:#64748b;">${l.time}</span> <span style="color:${l.color};font-weight:600;">[${l.category}]</span> ${escHtml(l.msg)} <span style="color:#94a3b8;">${escHtml(l.detail||'')}</span></div>`
+  ).join('');
+  debugLogEl.scrollTop = debugLogEl.scrollHeight;
+}
+function clearDebugLog() { _debugLogs = []; renderDebugLog(); debugCount.textContent = '(0)'; }
+
+$('debug-header').addEventListener('click', () => {
+  debugLogEl.style.display = debugLogEl.style.display === 'none' ? '' : 'none';
+  $('debug-toggle').textContent = debugLogEl.style.display === 'none' ? '▶' : '▼';
+});
+
+btnDebugToggle.addEventListener('click', () => {
+  _debugEnabled = !_debugEnabled;
+  debugPanel.style.display = _debugEnabled ? '' : 'none';
+  btnDebugToggle.style.background = _debugEnabled ? 'var(--c-primary)' : '';
+  btnDebugToggle.style.color = _debugEnabled ? '#fff' : '';
+  btnDebugToggle.textContent = _debugEnabled ? '🐛 开' : '🐛';
+  if (_debugEnabled) { debugLog('🟢系统', '#8B5CF6', '调试已开启'); }
+});
+
+// ==================== HELP ====================
+$('header-help').addEventListener('click', () => {
+  showModal(`
+    <h3>📖 使用说明</h3>
+    <p style="font-size:12px;color:var(--c-text-dim);margin-bottom:8px;">本工具帮助从抖音 JSON 元数据中抽取字段，生成 JSONPath 映射。</p>
+    <ol style="font-size:12px;color:var(--c-text-dim);padding-left:16px;line-height:1.8;">
+      <li>在左侧粘贴 JSON → 点击 <b>格式化</b></li>
+      <li>（可选）填写 DeepSeek API Key 启用 AI 翻译</li>
+      <li>在中间搜索 / 浏览字段按钮</li>
+      <li><b>点击一次</b>预览左侧高亮 → <b>再点一次</b>选中</li>
+      <li>右侧自动生成 JSONPath → 可编辑 key → 复制</li>
+    </ol>
+    <div class="modal-actions"><button class="modal-btn primary" onclick="closeModal()">知道了</button></div>
+  `);
+});
+
+// ==================== FORMAT & PARSE ====================
+console.log('🔗 正在绑定格式化按钮事件, btnFormat 存在:', !!btnFormat);
+btnFormat.addEventListener('click', async () => {
+  console.log('🔘 格式化按钮被点击');
+
+  try {
+    const raw = jsonInput.value.trim();
+    if (!raw) { showToast('请先粘贴 JSON 数据', 'warning'); return; }
+
+    // Check if there are existing selections
+    const hasSelections = state.leafEntries.some(e => e.state === 'selected' || e.state === 'previewed');
+    if (hasSelections) {
+      if (!confirm('将清空当前所有选择，确定？')) return;
+    }
+
+    // Reset
+    resetAll();
+
+    try {
+      state.parsedJson = JSON.parse(raw);
+    } catch (err) {
+      jsonInput.classList.add('error');
+      jsonErrorMsg.style.display = 'block';
+      const match = err.message.match(/position\s+(\d+)/);
+      let msg = 'JSON 格式错误: ' + err.message;
+      if (match) {
+        const pos = parseInt(match[1]);
+        const lines = raw.substring(0, pos).split('\n');
+        const line = lines.length;
+        const col = lines[lines.length-1].length + 1;
+        msg += `\n位置: 第 ${line} 行, 第 ${col} 列`;
+      }
+      jsonErrorMsg.textContent = msg;
+      return;
+    }
+
+    jsonInput.classList.remove('error');
+    jsonErrorMsg.style.display = 'none';
+    state.isFormatting = true;
+
+    console.log('📦 JSON 解析成功，构建树...');
+
+    // Build tree
+    state.treeNodes = buildTreeNode(null, state.parsedJson, '$');
+    renderTree([state.treeNodes]);
+
+    // Extract leaf paths
+    state.leafEntries = [];
+    extractLeafPaths([state.treeNodes], []);
+    console.log('🌿 提取到 ' + state.leafEntries.length + ' 个叶子路径');
+
+    // Pre-fill quick translations (dict + auto), then render buttons immediately
+    prefillTranslations();
+
+    // Render buttons NOW - don't wait for API
+    renderSelectorButtons();
+    searchBox.disabled = false;
+    btnSelectAll.disabled = false;
+    btnInvert.disabled = false;
+    btnClear.disabled = false;
+    btnFilterEmpty.disabled = false;
+    btnFilterEmpty.classList.remove('active');
+    filterEmptyActive = false;
+    renderOutput();
+
+    // Fire API translation in background (will update buttons when done)
+    translateWithAPI();
+
+    state.isFormatting = false;
+    debugLog('🟢系统', '#8B5CF6', '格式化完成: ' + state.leafEntries.length + ' 个叶子字段, ' + Object.keys(state.translationCache).length + ' 条预填充翻译');
+  } catch (err) {
+    console.error('❌ 格式化出错:', err);
+    showToast('格式化出错: ' + err.message, 'error');
+    state.isFormatting = false;
+  }
+});
+
+function resetAll() {
+  state.leafEntries = [];
+  state.translationCache = {};
+  state.translationSources = {};
+  renderTree(null);
+  selectorButtons.innerHTML = '<div class="empty-state-msg">← 请先在左侧粘贴 JSON 并点击格式化</div>';
+  searchBox.value = '';
+  searchBox.disabled = true;
+  btnSelectAll.disabled = true;
+  btnInvert.disabled = true;
+  btnClear.disabled = true;
+  btnFilterEmpty.disabled = true;
+  btnFilterEmpty.classList.remove('active');
+  filterEmptyActive = false;
+  outputFieldsList.innerHTML = '<div class="empty-state-msg">← 请在中间选择要抽取的字段</div>';
+  setOutputCode({ fields: {} });
+  translationTableWrap.style.display = 'none';
+  translationTableBody.innerHTML = '';
+  progressBar.style.display = 'none';
+}
+
+// ==================== TREE BUILDING ====================
+function buildTreeNode(parentKey, value, path) {
+  const type = Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value;
+  const isLeaf = type !== 'object' && type !== 'array';
+  const node = { key: parentKey || 'root', path, type, value, children: [], isLeaf };
+
+  if (!isLeaf) {
+    if (type === 'array') {
+      for (let i=0; i<value.length; i++) {
+        const childPath = path + '[' + i + ']';
+        node.children.push(buildTreeNode('[' + i + ']', value[i], childPath));
+      }
+    } else {
+      // Sort keys alphabetically for consistent ordering
+      const sortedKeys = Object.keys(value).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      for (const k of sortedKeys) {
+        const childPath = path + '.' + k;
+        node.children.push(buildTreeNode(k, value[k], childPath));
+      }
+    }
+  }
+  return node;
+}
+
+function renderTree(nodes) {
+  treeContainer.innerHTML = '';
+  if (!nodes) { treeContainer.innerHTML = '<div class="empty-state">等待 JSON 输入...</div>'; return; }
+  const frag = document.createDocumentFragment();
+  renderTreeNodes(nodes, frag, 0, true);
+  treeContainer.appendChild(frag);
+}
+
+function renderTreeNodes(nodes, container, depth, autoExpand) {
+  for (const node of nodes) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'tree-node';
+    wrapper.style.setProperty('--depth', depth);
+
+    const row = document.createElement('div');
+    row.className = 'node-row';
+    row.setAttribute('data-path', node.path);
+
+    // Arrow
+    const arrow = document.createElement('span');
+    arrow.className = 'tree-arrow';
+    if (node.isLeaf) {
+      arrow.classList.add('hidden');
+    } else {
+      arrow.textContent = '▶';
+      if (autoExpand && depth < 2) arrow.classList.add('expanded');
+      arrow.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willExpand = !arrow.classList.contains('expanded');
+        arrow.classList.toggle('expanded');
+        const children = wrapper.querySelector(':scope > .tree-children');
+        if (children) children.style.display = willExpand ? '' : 'none';
+        debugLogLeft(node.path, willExpand ? '展开' : '折叠');
+        syncTreeToggle(node.path, 'left', willExpand);
+      });
+    }
+    row.appendChild(arrow);
+
+    // Key
+    const keySpan = document.createElement('span');
+    keySpan.className = 'tree-key';
+    keySpan.textContent = node.key;
+    row.appendChild(keySpan);
+
+    // Colon
+    if (node.isLeaf) {
+      const colon = document.createElement('span');
+      colon.className = 'tree-colon';
+      colon.textContent = ': ';
+      row.appendChild(colon);
+    } else if (node.type === 'array') {
+      const hint = document.createElement('span');
+      hint.className = 'tree-type-hint';
+      hint.textContent = node.children.length === 0 ? '[]' : '[' + node.children.length + ']';
+      row.appendChild(hint);
+    } else {
+      const hint = document.createElement('span');
+      hint.className = 'tree-type-hint';
+      hint.textContent = '{' + node.children.length + '}';
+      row.appendChild(hint);
+    }
+
+    // Value (leaf)
+    if (node.isLeaf) {
+      const rawVal = node.value;
+      const isUrl = node.type === 'string' && /^https?:\/\//i.test(String(rawVal));
+
+      if (isUrl) {
+        // Clickable link for URLs
+        const link = document.createElement('a');
+        link.className = 'tree-val str tree-link';
+        link.href = rawVal;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.title = '点击在新标签页打开';
+        let displayVal = rawVal.length > 100 ? rawVal.substring(0, 97) + '...' : rawVal;
+        link.textContent = displayVal;
+        if (rawVal.length > 100) link.setAttribute('data-tooltip', rawVal);
+        row.appendChild(link);
+      } else {
+        const valSpan = document.createElement('span');
+        valSpan.className = 'tree-val';
+        let displayVal;
+        if (node.type === 'string') {
+          valSpan.classList.add('str');
+          displayVal = '"' + String(rawVal) + '"';
+        } else if (node.type === 'number') {
+          valSpan.classList.add('num');
+          displayVal = String(rawVal);
+        } else if (node.type === 'boolean') {
+          valSpan.classList.add('bool');
+          displayVal = String(rawVal);
+        } else {
+          valSpan.classList.add('null');
+          displayVal = 'null';
+        }
+        if (node.type === 'string' && displayVal.length > 108) {
+          valSpan.textContent = displayVal.substring(0, 100) + '..."';
+          valSpan.setAttribute('data-tooltip', displayVal);
+        } else {
+          valSpan.textContent = displayVal;
+        }
+        row.appendChild(valSpan);
+      }
+    }
+
+    wrapper.appendChild(row);
+
+    // Children
+    if (!node.isLeaf) {
+      const childrenWrap = document.createElement('div');
+      childrenWrap.className = 'tree-children';
+      if (!(autoExpand && depth < 2)) {
+        childrenWrap.style.display = 'none';
+      }
+      renderTreeNodes(node.children, childrenWrap, depth + 1, autoExpand && depth < 2);
+      wrapper.appendChild(childrenWrap);
+    }
+
+    container.appendChild(wrapper);
+  }
+}
+
+// ==================== LEAF PATH EXTRACTION ====================
+function extractLeafPaths(nodes, arrayPathStack) {
+  for (const node of nodes) {
+    if (node.isLeaf) {
+      const entry = createLeafEntry(node, arrayPathStack);
+      state.leafEntries.push(entry);
+    } else if (node.type === 'array') {
+      const hasItems = node.children.length > 0;
+      for (const child of node.children) {
+        if (child.isLeaf) {
+          const entry = createLeafEntry(child, [...arrayPathStack, { path: node.path, hasItems }]);
+          state.leafEntries.push(entry);
+        } else if (child.type === 'array') {
+          extractLeafPaths([child], [...arrayPathStack, { path: node.path, hasItems }]);
+        } else if (child.type === 'object') {
+          extractLeafPaths(child.children, [...arrayPathStack, { path: node.path, hasItems }]);
+        }
+      }
+    } else if (node.type === 'object') {
+      extractLeafPaths(node.children, arrayPathStack);
+    }
+  }
+}
+
+function createLeafEntry(node, arrayPathStack) {
+  const unresolved = arrayPathStack.some(a => a.hasItems);
+  const baseId = makeBaseId(node.path, arrayPathStack);
+  const arrayIndexes = {};
+  for (const a of arrayPathStack) {
+    arrayIndexes[a.path] = -1;
+  }
+  // For array element nodes like [0], outputKey = array name (e.g., url_list)
+  let outKey = node.key;
+  if (/^\[\d+\]$/.test(node.key)) {
+    const lastDot = node.path.lastIndexOf('.');
+    const lastSegment = lastDot >= 0 ? node.path.substring(lastDot + 1) : node.path;
+    outKey = lastSegment.replace(/\[\d+\]/, '');
+  }
+  return {
+    id: baseId,
+    keyName: node.key,
+    fullJsonPath: node.path,
+    value: node.value,
+    chineseName: '',
+    outputKey: outKey,
+    userEdited: false,
+    state: 'default',
+    arrayIndexes,
+    hasUnresolvedArray: unresolved,
+  };
+}
+
+function makeBaseId(path, arrayPathStack) {
+  let id = path;
+  for (const a of arrayPathStack) {
+    id = id.replace(a.path, a.path.replace(/\[\d+\]/g, '[_]'));
+  }
+  id = id.replace(/\[\d+\]/g, '[_]');
+  return id;
+}
+
+// ==================== TRANSLATION ====================
+// 快速预填充：词典 + 本地翻译 → 按钮立即显示
+function prefillTranslations() {
+  const uniqueKeys = [...new Set(state.leafEntries.map(e => e.keyName))];
+  for (const key of uniqueKeys) {
+    if (TRANSLATION_DICT[key] !== undefined) {
+      state.translationCache[key] = TRANSLATION_DICT[key];
+      state.translationSources[key] = 'dict';
+    } else {
+      state.translationCache[key] = autoTranslate(key);
+      state.translationSources[key] = 'local';
+    }
+  }
+  for (const entry of state.leafEntries) {
+    entry.chineseName = state.translationCache[entry.keyName];
+  }
+  renderTranslationTable(uniqueKeys);
+  console.log('⚡ 快速预填充完成: ' + uniqueKeys.length + ' 个字段');
+}
+
+// 后台 API 翻译 → 完成后原地更新按钮文字
+async function translateWithAPI() {
+  const apiKey = apiKeyInput.value.trim();
+  if (!apiKey) { progressBar.style.display = 'none'; setApiStatus('⚠️ 未设置 API Key，使用本地翻译', '#F59E0B'); debugLog('🤖API', '#EF4444', '❌ 未设置 API Key，跳过后台翻译'); return; }
+
+  const uniqueKeys = [...new Set(state.leafEntries.map(e => e.keyName))];
+  setApiStatus('🔄 正在调用 DeepSeek 翻译 ' + uniqueKeys.length + ' 个字段...', '#3B82F6');
+  progressBar.style.display = 'block';
+  progressBar.textContent = `后台翻译中: ${uniqueKeys.length} 个字段...`;
+  debugLog('🤖API', '#8B5CF6', '开始后台翻译 ' + uniqueKeys.length + ' 个字段 | Key=' + apiKey.substring(0,6) + '...');
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const prompt = `Translate ALL these field names to concise Chinese. Return ONLY a JSON object: {"field1":"翻译1","field2":"翻译2",...}. No markdown. Fields: ${JSON.stringify(uniqueKeys)}`;
+    debugLog('🤖API', '#8B5CF6', '发送请求', '请求体' + prompt.length + '字');
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.05, max_tokens: 8192,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      debugLog('🤖API', '#8B5CF6', '收到回复 ' + content.length + ' 字', content.substring(0, 100));
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const translations = JSON.parse(jsonMatch[0]);
+          let apiCount = 0;
+          for (const key of uniqueKeys) {
+            if (translations[key] && typeof translations[key] === 'string' && translations[key].trim()) {
+              state.translationCache[key] = translations[key].trim();
+              state.translationSources[key] = 'api';
+              apiCount++;
+            }
+          }
+          setApiStatus('✅ API 翻译完成: ' + apiCount + '/' + uniqueKeys.length + ' 字段', apiCount === uniqueKeys.length ? '#10B981' : '#F59E0B');
+          debugLog('🤖API', '#8B5CF6', '翻译完成: ' + apiCount + '/' + uniqueKeys.length + ' 个字段', apiCount === uniqueKeys.length ? '✅ 全覆盖' : '⚠️ 漏翻字段已记录');
+          if (apiCount < uniqueKeys.length) {
+            const missing = uniqueKeys.filter(k => !translations[k]);
+            console.warn('⚠️ API 漏翻 ' + missing.length + ' 个:', missing.slice(0, 10));
+          }
+          updateButtonTranslations();
+          renderTranslationTable(uniqueKeys);
+        } catch (parseErr) {
+          setApiStatus('❌ API JSON 解析失败，使用本地翻译', '#EF4444');
+          debugLog('🤖API', '#EF4444', '❌ JSON 解析失败', parseErr.message);
+          showToast('API 翻译解析失败，使用本地翻译', 'warning');
+        }
+      } else {
+        setApiStatus('❌ API 回复格式错误，使用本地翻译', '#EF4444');
+        debugLog('🤖API', '#EF4444', '❌ 回复中无JSON', '内容: ' + content.substring(0, 80));
+      }
+    } else {
+      const errText = await resp.text().catch(() => '');
+      setApiStatus('❌ HTTP ' + resp.status + '，使用本地翻译', '#EF4444');
+      debugLog('🤖API', '#EF4444', '❌ HTTP ' + resp.status, errText.substring(0, 100));
+      showToast('API 请求失败(' + resp.status + ')，使用本地翻译', 'warning');
+    }
+  } catch (e) {
+    setApiStatus('❌ 网络错误/超时，使用本地翻译', '#EF4444');
+    debugLog('🤖API', '#EF4444', '❌ 网络/超时错误', e.message);
+    showToast('API 连接失败，使用本地翻译', 'warning');
+  }
+  progressBar.style.display = 'none';
+}
+
+function setApiStatus(msg, color) {
+  apiStatus.style.display = 'block';
+  apiStatus.textContent = msg;
+  apiStatus.style.background = color + '22';
+  apiStatus.style.color = color;
+  apiStatus.style.border = '1px solid ' + color + '44';
+}
+
+// 原地更新按钮中文文字
+function updateButtonTranslations() {
+  for (const entry of state.leafEntries) {
+    if (state.translationCache[entry.keyName]) {
+      entry.chineseName = state.translationCache[entry.keyName];
+    }
+  }
+  const buttons = selectorButtons.querySelectorAll('.leaf-btn');
+  buttons.forEach(btn => {
+    const id = btn.getAttribute('data-id');
+    const entry = state.leafEntries.find(e => e.id === id);
+    if (entry) {
+      const cn = btn.querySelector('.btn-cn');
+      const newText = '（' + entry.chineseName + '）';
+      if (cn && cn.textContent !== newText) {
+        cn.textContent = newText;
+        cn.style.transition = 'color 0.3s';
+        cn.style.color = '#fbbf24';
+        setTimeout(() => { cn.style.color = ''; }, 800);
+      }
+    }
+  });
+}
+
+function autoTranslate(key) {
+  const words = key.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase().split('_');
+  const translated = words.map(w => ROOT_WORDS[w] || '').filter(Boolean);
+  // Count how many words got translated
+  const totalWords = words.filter(w => w.length > 0).length;
+  const translatedCount = translated.length;
+  // If enough words translated, use the result
+  if (translatedCount > 0 && translatedCount / totalWords >= 0.3) {
+    return translated.join('') + (translatedCount < totalWords ? '等' : '');
+  }
+  // Fallback: use the key name itself (better than 《》 wrappers)
+  // At least it's readable, and API will override it later
+  return '字段:' + key;
+}
+
+function renderTranslationTable(uniqueKeys) {
+  translationTableBody.innerHTML = '';
+  for (const key of uniqueKeys) {
+    const source = state.translationSources[key] || 'local';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:var(--font-mono);">${escHtml(key)}</td>
+      <td>${escHtml(state.translationCache[key])}</td>
+      <td><span class="trans-source ${source}">${source === 'dict' ? '词典' : source === 'api' ? 'API' : '本地'}</span></td>
+    `;
+    translationTableBody.appendChild(tr);
+  }
+  translationTableWrap.style.display = 'block';
+}
+
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+// ==================== SELECTOR BUTTONS - TREE ====================
+function getVisibleEntries() {
+  const q = searchBox.value.trim().toLowerCase();
+  if (!q) return [...state.leafEntries];
+  return state.leafEntries.filter(e =>
+    e.keyName.toLowerCase().includes(q) ||
+    e.chineseName.toLowerCase().includes(q) ||
+    e.fullJsonPath.toLowerCase().includes(q) ||
+    e.outputKey.toLowerCase().includes(q)
+  );
+}
+
+// ==================== BUTTON TREE FROM STATE.TREENODES (exact match with left tree) ====================
+let _entryByPath = null;
+function buildEntryPathMap() {
+  _entryByPath = new Map();
+  for (const entry of state.leafEntries) {
+    _entryByPath.set(entry.fullJsonPath, entry);
+  }
+}
+
+function renderSelectorButtons() {
+  selectorButtons.innerHTML = '';
+  buildEntryPathMap();
+  const frag = document.createDocumentFragment();
+  if (state.treeNodes && state.treeNodes.children) {
+    // Render root's children directly (skip $ wrapper)
+    const sorted = [...state.treeNodes.children].sort((a, b) => a.key.localeCompare(b.key, 'zh-CN'));
+    for (const child of sorted) {
+      renderButtonsFromTreeNode(child, frag, 0);
+    }
+  }
+  selectorButtons.appendChild(frag);
+}
+
+// Recursively traverse treeNodes → exact same structure & order as left tree
+function renderButtonsFromTreeNode(node, container, depth) {
+  const indentPx = depth * 16;
+
+  if (node.isLeaf) {
+    const entry = _entryByPath.get(node.path);
+    if (entry) container.appendChild(createLeafButton(entry, depth));
+    return;
+  }
+
+  // Handle non-leaf nodes (objects and arrays)
+  if (!node.children || node.children.length === 0) return;
+  const leafCount = countLeafDescendants(node);
+  if (leafCount === 0) return;
+
+  // Sort children: numeric keys by number, string keys by zh-CN
+  const sorted = [...node.children].sort((a, b) => {
+    const aNum = parseInt(a.key.replace(/[\[\]]/g, ''));
+    const bNum = parseInt(b.key.replace(/[\[\]]/g, ''));
+    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+    return a.key.localeCompare(b.key, 'zh-CN');
+  });
+
+  // Group label: for arrays show "key [N]", for objects show "key"
+  const label = node.type === 'array'
+    ? `${escHtml(node.key)} [${node.children.length}]`
+    : escHtml(node.key);
+
+  const group = document.createElement('div');
+  group.className = 'btn-group';
+  group.setAttribute('data-group-path', node.path);
+
+  const header = document.createElement('div');
+  header.className = 'btn-group-header';
+  header.style.paddingLeft = (indentPx + 8) + 'px';
+  header.innerHTML = `
+    <span class="grp-arrow expanded">▶</span>
+    <span class="grp-path">${label}</span>
+    <span class="grp-count">${leafCount} 项</span>
+  `;
+  header.addEventListener('click', () => {
+    const body = group.querySelector('.btn-group-body');
+    const arrow = header.querySelector('.grp-arrow');
+    if (body) {
+      const willExpand = body.classList.contains('collapsed');
+      body.classList.toggle('collapsed');
+      arrow.classList.toggle('expanded');
+      syncTreeToggle(node.path, 'middle', willExpand);
+    }
+  });
+  group.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'btn-group-body';
+  for (const child of sorted) {
+    renderButtonsFromTreeNode(child, body, depth + 1);
+  }
+  group.appendChild(body);
+  container.appendChild(group);
+}
+
+function countLeafDescendants(node) {
+  if (node.isLeaf) return 1;
+  let count = 0;
+  for (const child of node.children || []) {
+    count += countLeafDescendants(child);
+  }
+  return count;
+}
+
+// Sync expand/collapse between left JSON tree and middle button tree
+let _syncing = false;
+function syncTreeToggle(path, source, expand) {
+  if (_syncing) return;
+  if (source === 'middle') debugLogMiddle(path, expand ? '展开' : '折叠');
+  _syncing = true;
+  try {
+    if (source !== 'left') {
+      const escPath = cssEscape(path);
+      const leftRow = treeContainer.querySelector(`[data-path="${escPath}"]`);
+      if (leftRow) {
+        const arrow = leftRow.querySelector('.tree-arrow');
+        const children = leftRow.closest('.tree-node')?.querySelector(':scope > .tree-children');
+        if (arrow && children) {
+          if (expand) { arrow.classList.add('expanded'); children.style.display = ''; }
+          else { arrow.classList.remove('expanded'); children.style.display = 'none'; }
+        }
+      }
+    }
+    if (source !== 'middle') {
+      const escPath = cssEscape(path);
+      const midGroup = selectorButtons.querySelector(`[data-group-path="${escPath}"]`);
+      if (midGroup) {
+        const bd = midGroup.querySelector(':scope > .btn-group-body');
+        const ar = midGroup.querySelector(':scope > .btn-group-header .grp-arrow');
+        if (bd && ar) {
+          if (expand) { bd.classList.remove('collapsed'); ar.classList.add('expanded'); }
+          else { bd.classList.add('collapsed'); ar.classList.remove('expanded'); }
+        }
+      }
+    }
+  } finally { _syncing = false; }
+}
+
+function isValueEmpty(val) {
+  return val === null || val === '' || val === undefined;
+}
+
+function createLeafButton(entry, depth) {
+  const btn = document.createElement('button');
+  btn.className = 'leaf-btn';
+  btn.setAttribute('data-id', entry.id);
+  btn.dataset.state = entry.state;
+  updateBtnStyle(btn, entry);
+  // Visual indent based on tree depth
+  btn.style.paddingLeft = ((depth || 0) * 16 + 24) + 'px';
+
+  // Red/green dot based on value
+  const empty = isValueEmpty(entry.value);
+  const dotClass = empty ? 'empty' : 'has';
+  btn.innerHTML = `<span class="val-dot ${dotClass}"></span><span class="btn-en">${escHtml(entry.keyName)}</span><span class="btn-cn">（${escHtml(entry.chineseName)}）</span>`;
+
+  if (entry.hasUnresolvedArray) {
+    btn.classList.add('array-pending');
+  }
+  if (entry.hasUnresolvedArray && Object.values(entry.arrayIndexes).every(v => v < 0)) {
+    if (checkAllArraysEmpty(entry)) btn.classList.add('array-empty');
+  }
+
+  if (Object.values(entry.arrayIndexes).some(v => v >= 0)) {
+    const editIcon = document.createElement('span');
+    editIcon.className = 'edit-idx';
+    editIcon.textContent = '✎';
+    editIcon.addEventListener('click', e => { e.stopPropagation(); showArrayModal(entry); });
+    btn.appendChild(editIcon);
+  }
+
+  btn.addEventListener('click', () => handleBtnClick(entry));
+  return btn;
+}
+
+function updateBtnStyle(btn, entry) {
+  btn.classList.remove('state-previewed', 'state-selected');
+  if (entry.state === 'previewed') btn.classList.add('state-previewed');
+  if (entry.state === 'selected') btn.classList.add('state-selected');
+  btn.dataset.state = entry.state;
+}
+
+function checkAllArraysEmpty(entry) {
+  for (const [arrPath, idx] of Object.entries(entry.arrayIndexes)) {
+    if (idx < 0) {
+      // Check if this array is empty
+      const arrNode = findNodeByPath([state.treeNodes], arrPath);
+      if (arrNode && arrNode.type === 'array' && arrNode.children.length === 0) return true;
+    }
+  }
+  return false;
+}
+
+function findNodeByPath(nodes, path) {
+  for (const n of nodes) {
+    if (n.path === path) return n;
+    if (!n.isLeaf) {
+      const found = findNodeByPath(n.children, path);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// ==================== BUTTON CLICK HANDLER ====================
+function handleBtnClick(entry) {
+  const now = Date.now();
+  if (now - state.lastClickTime < state.clickThrottle) return;
+  state.lastClickTime = now;
+  const nextState = entry.state === 'default' ? 'previewed' : entry.state === 'previewed' ? 'selected' : 'default';
+  debugLogBtn(entry, '点击: ' + entry.state + ' → ' + nextState + ' | 值=' + (entry.value === null ? 'null' : entry.value === '' ? '""' : '✓'));
+
+  // Array handling: only show modal if path has NO concrete index (e.g., [_] not [0])
+  if (entry.hasUnresolvedArray && !/\[\d+\]/.test(entry.fullJsonPath)) {
+    const allEmpty = checkAllArraysEmpty(entry);
+    if (allEmpty) { showToast('数组为空，无元素可提取', 'warning'); return; }
+    showArrayModal(entry);
+    return;
+  }
+
+  // Three-state toggle
+  if (entry.state === 'default') {
+    // Cancel all other previews
+    for (const e of state.leafEntries) {
+      if (e !== entry && e.state === 'previewed') e.state = 'default';
+    }
+    entry.state = 'previewed';
+    highlightInTree(entry);
+    refreshAll();
+  } else if (entry.state === 'previewed') {
+    // Deselect other entries from the same array (only one per array)
+    if (/^\[\d+\]$/.test(entry.keyName)) {
+      const arrBase = getArrayBasePath(entry.fullJsonPath);
+      for (const e of state.leafEntries) {
+        if (e !== entry && e.state === 'selected' && getArrayBasePath(e.fullJsonPath) === arrBase) {
+          e.state = 'default';
+        }
+      }
+    }
+    entry.state = 'selected';
+    runDeDup();
+    refreshAll();
+    renderOutput();
+  } else if (entry.state === 'selected') {
+    entry.state = 'default';
+    runDeDup();
+    refreshAll();
+    renderOutput();
+  }
+}
+
+function refreshAll() {
+  const buttons = selectorButtons.querySelectorAll('.leaf-btn');
+  buttons.forEach(btn => {
+    const id = btn.getAttribute('data-id');
+    const entry = state.leafEntries.find(e => e.id === id);
+    if (entry) updateBtnStyle(btn, entry);
+  });
+  applySearchFilter();
+}
+
+function applySearchFilter() {
+  const q = searchBox.value.trim().toLowerCase();
+  const buttons = selectorButtons.querySelectorAll('.leaf-btn');
+  const groups = selectorButtons.querySelectorAll('.btn-group');
+
+  buttons.forEach(btn => {
+    const id = btn.getAttribute('data-id');
+    const entry = state.leafEntries.find(e => e.id === id);
+    if (!entry) { btn.style.display = 'none'; return; }
+    if (!q || entry.keyName.toLowerCase().includes(q) || entry.chineseName.toLowerCase().includes(q) || entry.fullJsonPath.toLowerCase().includes(q) || entry.outputKey.toLowerCase().includes(q)) {
+      btn.style.display = '';
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+
+  // Show/hide groups considering both search and filter
+  groups.forEach(group => {
+    const visibleBtns = group.querySelectorAll('.leaf-btn:not([style*="display: none"]):not(.filtered-empty)');
+    group.style.display = visibleBtns.length > 0 ? '' : 'none';
+  });
+}
+
+// Search with preview cancellation + auto-expand all groups
+searchBox.addEventListener('input', () => {
+  // Cancel preview on search
+  let hadPreview = false;
+  for (const e of state.leafEntries) {
+    if (e.state === 'previewed') { e.state = 'default'; hadPreview = true; }
+  }
+  if (hadPreview) {
+    clearAllHighlights();
+    refreshAll();
+  } else {
+    applySearchFilter();
+  }
+  expandAllMiddleGroups();
+});
+
+// Expand all middle tree groups so search results are always visible
+function expandAllMiddleGroups() {
+  const bodies = selectorButtons.querySelectorAll('.btn-group-body.collapsed');
+  bodies.forEach(b => b.classList.remove('collapsed'));
+  const arrows = selectorButtons.querySelectorAll('.grp-arrow:not(.expanded)');
+  arrows.forEach(a => a.classList.add('expanded'));
+}
+
+// ==================== HIGHLIGHT IN TREE ====================
+function highlightInTree(entry) {
+  clearAllHighlights();
+  const targetPath = makeHighlightPath(entry);
+  const row = treeContainer.querySelector(`[data-path="${cssEscape(targetPath)}"]`);
+  if (!row) return;
+
+  // Expand all parent nodes in LEFT tree
+  let parent = row.closest('.tree-children');
+  const parentPaths = [];
+  while (parent) {
+    parent.style.display = '';
+    const siblingArrow = parent.previousElementSibling?.querySelector('.tree-arrow');
+    if (siblingArrow) siblingArrow.classList.add('expanded');
+    // Collect parent path for middle tree sync
+    const parentRow = parent.previousElementSibling;
+    if (parentRow) {
+      const pp = parentRow.getAttribute('data-path');
+      if (pp) parentPaths.push(pp);
+    }
+    parent = parent.parentElement?.closest('.tree-children');
+  }
+
+  // Also expand parent groups in MIDDLE tree
+  for (const pp of parentPaths) {
+    expandMiddleGroup(pp);
+  }
+
+  // Double rAF then scroll
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('highlight');
+      setTimeout(() => row.classList.remove('highlight'), 2200);
+    });
+  });
+}
+
+function expandMiddleGroup(path) {
+  const escPath = cssEscape(path);
+  const midGroup = selectorButtons.querySelector(`[data-group-path="${escPath}"]`);
+  if (midGroup) {
+    const body = midGroup.querySelector(':scope > .btn-group-body');
+    const arrow = midGroup.querySelector(':scope > .btn-group-header .grp-arrow');
+    if (body && body.classList.contains('collapsed')) {
+      body.classList.remove('collapsed');
+      if (arrow) arrow.classList.add('expanded');
+    }
+  }
+}
+
+function makeHighlightPath(entry) {
+  return buildFullPath(entry);
+}
+
+function clearAllHighlights() {
+  treeContainer.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+}
+
+function cssEscape(s) {
+  return s.replace(/[!"#$%&'()*+,./:;<=>?@[\]^`{|}~]/g, '\\$&');
+}
+
+// ==================== ARRAY MODAL ====================
+function showArrayModal(entry) {
+  // Sequential array selection
+  const unresolved = Object.entries(entry.arrayIndexes).filter(([_, v]) => v < 0);
+  if (unresolved.length === 0) {
+    // All resolved already, just go to preview
+    entry.hasUnresolvedArray = false;
+    entry.state = 'previewed';
+    for (const e of state.leafEntries) {
+      if (e !== entry && e.state === 'previewed') e.state = 'default';
+    }
+    highlightInTree(entry);
+    refreshAll();
+    return;
+  }
+
+  const [arrPath, _] = unresolved[0];
+  const arrNode = findNodeByPath([state.treeNodes], arrPath);
+
+  if (!arrNode || arrNode.children.length === 0) {
+    showToast('数组为空，无元素可提取', 'warning');
+    return;
+  }
+
+  const remaining = unresolved.length;
+  let html = `<h3>选择数组下标</h3>`;
+  if (remaining > 1) {
+    html += `<div class="array-step">步骤 1/${remaining}：请选择 <code>${arrPath}</code> 的下标</div>`;
+  } else {
+    html += `<div class="array-step">请选择 <code>${arrPath}</code> 的下标</div>`;
+  }
+
+  const firstChild = arrNode.children[0];
+  if (firstChild.isLeaf) {
+    // Basic type array
+    html += '<div class="modal-array-list">';
+    for (let i=0; i<arrNode.children.length; i++) {
+      const child = arrNode.children[i];
+      let val = child.type === 'string' ? '"' + String(child.value) + '"' : String(child.value);
+      if (val.length > 60) val = val.substring(0, 60) + '...';
+      html += `<div class="modal-array-item basic-item" data-idx="${i}">[${i}] ${escHtml(val)}</div>`;
+    }
+    html += '</div>';
+  } else if (arrNode.children[0].type === 'object') {
+    // Object array - table
+    const keys = Object.keys(arrNode.children[0].value || {});
+    const maxShow = 10;
+    html += '<table class="modal-array-table"><thead><tr><th>#</th>';
+    for (const k of keys.slice(0, 4)) html += `<th>${escHtml(k)}</th>`;
+    html += '<th>...</th></tr></thead><tbody>';
+    for (let i=0; i<Math.min(arrNode.children.length, maxShow); i++) {
+      const child = arrNode.children[i];
+      html += `<tr data-idx="${i}" style="cursor:pointer"><td>[${i}]</td>`;
+      for (const k of keys.slice(0, 4)) {
+        const v = child.children?.find(c => c.key === k);
+        let val = v ? String(v.value) : '-';
+        if (val.length > 20) val = val.substring(0, 20) + '...';
+        html += `<td>${escHtml(val)}</td>`;
+      }
+      html += '<td>...</td></tr>';
+    }
+    if (arrNode.children.length > maxShow) {
+      html += `<tr><td colspan="${Math.min(keys.length, 4) + 2}" class="modal-more">还有 ${arrNode.children.length - maxShow} 项</td></tr>`;
+    }
+    html += '</tbody></table>';
+  } else if (arrNode.children[0].type === 'array') {
+    // Nested array
+    html += '<div class="modal-array-list">';
+    for (let i=0; i<arrNode.children.length; i++) {
+      html += `<div class="modal-array-item" data-idx="${i}">[${i}] 数组 (${arrNode.children[i].children.length} 项)</div>`;
+    }
+    html += '</div>';
+  }
+
+  html += `<div class="modal-actions">
+    <button class="modal-btn" onclick="closeModal()">取消</button>
+  </div>`;
+
+  showModal(html);
+
+  // Add click handlers
+  setTimeout(() => {
+    modalBox.querySelectorAll('[data-idx]').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.idx);
+        entry.arrayIndexes[arrPath] = idx;
+        const stillUnresolved = Object.entries(entry.arrayIndexes).filter(([_, v]) => v < 0);
+        if (stillUnresolved.length > 0) {
+          // Continue with next array
+          showArrayModal(entry);
+        } else {
+          entry.hasUnresolvedArray = false;
+          entry.state = 'previewed';
+          for (const e of state.leafEntries) {
+            if (e !== entry && e.state === 'previewed') e.state = 'default';
+          }
+          closeModal();
+          // Build full path with indices
+          entry.fullJsonPath = buildFullPath(entry);
+          highlightInTree(entry);
+          refreshAll();
+        }
+      });
+    });
+  }, 50);
+}
+
+function buildFullPath(entry) {
+  let path = entry.fullJsonPath;
+  for (const [arrPath, idx] of Object.entries(entry.arrayIndexes)) {
+    if (idx >= 0) {
+      // Replace arrPath[N] with arrPath[idx], not just appending
+      const escaped = arrPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      path = path.replace(new RegExp(escaped + '\\[\\d+\\]'), arrPath + '[' + idx + ']');
+    }
+  }
+  return path;
+}
+// ==================== DEDUP ====================
+function runDeDup() {
+  const selected = state.leafEntries.filter(e => e.state === 'selected');
+  if (selected.length < 2) return;
+
+  // Detect which outputKeys have conflicts
+  const keyCount = new Map();
+  for (const e of selected) keyCount.set(e.outputKey, (keyCount.get(e.outputKey)||0)+1);
+
+  // If no conflicts, nothing to do
+  const hasConflict = [...keyCount.values()].some(v => v > 1);
+  if (!hasConflict) return;
+
+  // For conflicting keys, abbreviate ALL entries in that group
+  for (const entry of selected) {
+    if (entry.userEdited) continue;
+    if (keyCount.get(entry.outputKey) > 1) {
+      entry.outputKey = abbreviateKey(entry);
+    }
+  }
+
+  // Final pass: resolve any remaining duplicates
+  const used = new Set();
+  for (const entry of selected) {
+    let key = entry.outputKey;
+    if (used.has(key) && !entry.userEdited) {
+      const parts = entry.fullJsonPath.split('.');
+      key = abbreviatePart(parts[parts.length - 2].replace(/\[\d+\]/g, '')) + '_' + key;
+      let level = 3;
+      while (used.has(key) && level <= parts.length) {
+        key = abbreviatePart(parts[parts.length - level].replace(/\[\d+\]/g, '')) + '_' + key;
+        level++;
+      }
+      entry.outputKey = key;
+    }
+    used.add(entry.outputKey);
+  }
+}
+
+// Strategy B: keep numbers + first 3 alpha, limit total parent length
+function abbreviatePart(word) {
+  if (!word) return '';
+  // Pure digits or digit-starting: keep the number part only
+  if (/^\d/.test(word)) return (word.match(/\d+/) || [''])[0];
+  // Alpha + numbers (e.g., h264): keep alpha prefix + number
+  const match = word.match(/^([a-z]+)(\d.*)$/i);
+  if (match) return (match[1].substring(0, 2) || match[1][0]) + match[2].substring(0, 3);
+  // Pure alpha: first 3 chars
+  return word.substring(0, 3);
+}
+
+// Abbreviate parent object + array name
+function abbreviateKey(entry) {
+  const parts = entry.fullJsonPath.split('.');
+  const rawParent = parts[parts.length - 2] || '';
+  const parentName = rawParent.replace(/\[\d+\]/g, '');
+  const parentParts = parentName.split('_');
+  let shortParent = parentParts.map(p => abbreviatePart(p)).join('');
+  if (shortParent.length > 8) shortParent = shortParent.substring(0, 8);
+  const arrFirst = entry.outputKey.split('_')[0];
+  return shortParent + '_' + arrFirst;
+}
+
+function getArrayBasePath(path) {
+  // Only strip the LAST array index, not all
+  return path.replace(/\[\d+\]$/, '');
+}
+
+// ==================== BATCH OPERATIONS ====================
+btnSelectAll.addEventListener('click', () => {
+  if (!confirm('将跳过预览直接加入输出，确定？')) return;
+  const visible = getVisibleEntries();
+  for (const e of visible) {
+    if (e.hasUnresolvedArray) continue; // Skip unresolved arrays
+    if (e.state === 'default') e.state = 'selected';
+  }
+  runDeDup();
+  refreshAll();
+  renderOutput();
+});
+
+btnInvert.addEventListener('click', () => {
+  if (!confirm('将跳过预览直接加入输出，确定？')) return;
+  const visible = getVisibleEntries();
+  for (const e of visible) {
+    if (e.hasUnresolvedArray) continue;
+    e.state = e.state === 'selected' ? 'default' : 'selected';
+  }
+  runDeDup();
+  refreshAll();
+  renderOutput();
+});
+
+btnClear.addEventListener('click', () => {
+  for (const e of state.leafEntries) {
+    if (e.state === 'selected') e.state = 'default';
+  }
+  refreshAll();
+  renderOutput();
+});
+
+// Filter empty data toggle
+btnFilterEmpty.addEventListener('click', () => {
+  filterEmptyActive = !filterEmptyActive;
+  btnFilterEmpty.classList.toggle('active', filterEmptyActive);
+  btnFilterEmpty.textContent = filterEmptyActive ? '🔍 过滤中（仅显示有数据）' : '🔍 过滤空数据';
+  applyEmptyFilter();
+});
+
+function applyEmptyFilter() {
+  const buttons = selectorButtons.querySelectorAll('.leaf-btn');
+  buttons.forEach(btn => {
+    const id = btn.getAttribute('data-id');
+    const entry = state.leafEntries.find(e => e.id === id);
+    if (entry) {
+      if (filterEmptyActive && isValueEmpty(entry.value)) {
+        btn.classList.add('filtered-empty');
+      } else {
+        btn.classList.remove('filtered-empty');
+      }
+    }
+  });
+  // Re-evaluate group visibility
+  const groups = selectorButtons.querySelectorAll('.btn-group');
+  groups.forEach(group => {
+    const visibleBtns = group.querySelectorAll('.leaf-btn:not(.filtered-empty):not([style*="display: none"])');
+    group.style.display = visibleBtns.length > 0 ? '' : 'none';
+  });
+}
+
+// ==================== OUTPUT PANEL ====================
+// Store plain text separately for copy
+let _outputPlainText = '{ "fields": {} }';
+
+function setOutputCode(jsonObj) {
+  const json = JSON.stringify(jsonObj, null, 2);
+  _outputPlainText = json;
+  outputCodeEl.textContent = json;
+  outputStats.style.display = jsonObj.fields && Object.keys(jsonObj.fields).length ? 'block' : 'none';
+  if (jsonObj.fields) outputStats.textContent = '已选 ' + Object.keys(jsonObj.fields).length + ' 个字段';
+}
+function updateOutputCodeOnly() {
+  const selected = state.leafEntries.filter(e => e.state === 'selected');
+  if (selected.length === 0) {
+    setOutputCode({ fields: {} });
+  } else {
+    const fields = {};
+    for (const entry of selected) {
+      fields[entry.outputKey] = buildFullPath(entry);
+    }
+    setOutputCode({ fields });
+  }
+}
+
+function renderOutput() {
+  const selected = state.leafEntries.filter(e => e.state === 'selected');
+  outputFieldsList.innerHTML = '';
+  const fields = {};
+
+  for (const entry of selected) {
+    const fullPath = buildFullPath(entry);
+    fields[entry.outputKey] = fullPath;
+
+    const row = document.createElement('div');
+    row.className = 'output-field-row';
+
+    const keyInput = document.createElement('input');
+    keyInput.className = 'output-key-input';
+    keyInput.value = entry.outputKey;
+    keyInput.addEventListener('input', () => {
+      entry.outputKey = keyInput.value || entry.keyName;
+      entry.userEdited = true;
+    });
+    keyInput.addEventListener('blur', () => {
+      runDeDup();
+      updateOutputCodeOnly();
+    });
+
+    const pathDisplay = document.createElement('span');
+    pathDisplay.className = 'output-path-display';
+    pathDisplay.textContent = fullPath;
+
+    const removeBtn = document.createElement('span');
+    removeBtn.className = 'output-remove';
+    removeBtn.textContent = '×';
+    removeBtn.title = '移除';
+    removeBtn.addEventListener('click', () => {
+      entry.state = 'default';
+      runDeDup();
+      refreshAll();
+      row.remove();
+      updateOutputCodeOnly();
+      if (state.leafEntries.filter(e => e.state === 'selected').length === 0) {
+        outputFieldsList.innerHTML = '<div class="empty-state-msg">← 请在中间选择要抽取的字段</div>';
+        setOutputCode({ fields: {} });
+      }
+    });
+
+    row.appendChild(keyInput);
+    row.appendChild(pathDisplay);
+    row.appendChild(removeBtn);
+    outputFieldsList.appendChild(row);
+  }
+
+  if (selected.length === 0) {
+    outputFieldsList.innerHTML = '<div class="empty-state-msg">← 请在中间选择要抽取的字段</div>';
+    setOutputCode({ fields: {} });
+  } else {
+    setOutputCode({ fields });
+  }
+}
+
+// Copy button
+btnCopy.addEventListener('click', async () => {
+  const text = _outputPlainText;
+  try {
+    await navigator.clipboard.writeText(text);
+    btnCopy.classList.add('copied');
+    btnCopy.textContent = '✓ 已复制';
+    setTimeout(() => {
+      btnCopy.classList.remove('copied');
+      btnCopy.textContent = '📋 一键复制';
+    }, 2000);
+  } catch {
+    showToast('复制失败，请手动选择', 'error');
+  }
+});
+
+// ==================== KEYBOARD SHORTCUT ====================
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ==================== RESIZE PANELS ====================
+(function initResizers() {
+  const panels = document.querySelectorAll('#main > .panel');
+  const resizers = document.querySelectorAll('#main > .resizer');
+  if (panels.length !== 3 || resizers.length !== 2) return;
+  let dragState = null;
+
+  resizers.forEach((resizer, i) => {
+    resizer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const leftPanel = panels[i];
+      const rightPanel = panels[i + 1];
+      dragState = { leftPanel, rightPanel, startX: e.clientX, leftW: leftPanel.offsetWidth, rightW: rightPanel.offsetWidth };
+      resizer.classList.add('resizing');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragState) return;
+    const dx = e.clientX - dragState.startX;
+    const minW = 180;
+    const newLeft = Math.max(minW, dragState.leftW + dx);
+    const newRight = Math.max(minW, dragState.rightW - dx);
+    const total = newLeft + newRight;
+    if (total > 0) {
+      dragState.leftPanel.style.flex = 'none';
+      dragState.leftPanel.style.width = newLeft + 'px';
+      dragState.rightPanel.style.flex = 'none';
+      dragState.rightPanel.style.width = newRight + 'px';
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragState) return;
+    dragState = null;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    [].forEach.call(resizers, r => r.classList.remove('resizing'));
+  });
+})();
+
+console.log('✅ 抖音 JSON 路径抽取器已就绪');
+
+// Visual ready indicator
+const readyBadge = document.createElement('div');
+readyBadge.style.cssText = 'position:fixed;top:8px;right:8px;z-index:99999;background:#10B981;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;pointer-events:none;opacity:0.9;';
+readyBadge.textContent = 'READY';
+document.body.appendChild(readyBadge);
+setTimeout(() => { readyBadge.style.transition='opacity 0.5s'; readyBadge.style.opacity='0'; setTimeout(() => readyBadge.remove(), 500); }, 3000);
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>

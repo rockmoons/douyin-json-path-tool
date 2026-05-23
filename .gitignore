@@ -1,0 +1,7 @@
+neutralino-app/node_modules/
+neutralino-app/package.json
+neutralino-app/package-lock.json
+*.exe
+*.zip
+.ps1
+.bat
