@@ -198,15 +198,18 @@ body {
 #btn-do-search:disabled { opacity:0.4; cursor:not-allowed; }
 /* Search extras */
 #search-extras { flex-shrink:0; margin-bottom:4px; }
-.search-extra-group { margin-bottom:3px; }
+.search-extra-group { margin-bottom:2px; }
 .search-extra-title {
-  font-size:10px; color:var(--c-text-muted); cursor:pointer; user-select:none;
-  display:inline-flex; align-items:center; gap:3px; padding:3px 0 3px 12px; transition:color var(--transition-fast);
+  font-size:11px; color:var(--c-text-muted); cursor:pointer; user-select:none;
+  display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:4px;
+  transition:all var(--transition-fast);
 }
-.search-extra-title:hover { color:var(--c-text-dim); }
-.search-extra-title .arrow { font-size:9px; transition:transform var(--transition-fast); display:inline-block; }
-.search-extra-title .arrow.open { transform:rotate(90deg); }
-.search-extra-body { display:flex; flex-wrap:wrap; gap:4px; padding:4px 0 4px 12px; }
+.search-extra-title:hover { background:var(--c-surface2); color:var(--c-text-dim); }
+.search-extra-title .sx-icon { font-size:12px; flex-shrink:0; opacity:0.6; }
+.search-extra-title #hist-label, .search-extra-title #freq-label { flex:1; }
+.search-extra-title .arrow { font-size:9px; transition:transform 0.2s; margin-left:auto; opacity:0.5; }
+.search-extra-title .arrow.open { transform:rotate(90deg); opacity:0.8; }
+.search-extra-body { display:flex; flex-wrap:wrap; gap:4px; padding:4px 0 4px 8px; }
 .search-extra-body.collapsed { display:none; }
 .search-tag {
   display:inline-flex; align-items:center; gap:3px;
@@ -563,11 +566,11 @@ body {
         </div>
         <div id="search-extras">
           <div class="search-extra-group" id="hist-group">
-            <span class="search-extra-title" id="hist-title"><span class="arrow">▸</span> <span id="hist-label">搜索历史 (0)</span></span>
+            <span class="search-extra-title" id="hist-title"><span class="sx-icon">🕐</span><span id="hist-label">搜索历史</span><span class="arrow">▸</span></span>
             <div class="search-extra-body collapsed" id="hist-body"></div>
           </div>
           <div class="search-extra-group" id="freq-group">
-            <span class="search-extra-title" id="freq-title"><span class="arrow">▸</span> <span id="freq-label">常用字段 (0)</span></span>
+            <span class="search-extra-title" id="freq-title"><span class="sx-icon">⭐</span><span id="freq-label">常用字段</span><span class="arrow">▸</span></span>
             <div class="search-extra-body collapsed" id="freq-body"></div>
           </div>
         </div>
@@ -1045,7 +1048,7 @@ function resetAll() {
   btnAiToggle.classList.remove('active'); btnAiToggle.textContent = 'AI';
   searchBox.placeholder = '搜索字段（英文 / 中文）...'; btnDoSearch.textContent = '搜索';
   histBody.innerHTML = ''; freqBody.innerHTML = '';
-  histLabel.textContent = '搜索历史 (0)'; freqLabel.textContent = '常用字段 (0)';
+  histLabel.textContent = '搜索历史 · 暂无'; freqLabel.textContent = '常用字段 · 暂无';
   outputFieldsList.innerHTML = '<div class="empty-state-msg">← 请在中间选择要抽取的字段</div>';
   setOutputCode({ fields: {} });
   progressBar.style.display = 'none';
@@ -2820,11 +2823,11 @@ function updateStorageRate() {
 
 function renderSearchExtras() {
   const hist = loadSearchHistory();
-  histLabel.textContent = '搜索历史 (' + hist.length + ')';
+  histLabel.textContent = '搜索历史' + (hist.length ? ' (' + hist.length + ')' : ' · 暂无');
   histBody.innerHTML = hist.map(w => `<span class="search-tag hist" data-word="${escHtml(w)}">${escHtml(w)}<span class="tag-x" data-del="hist" data-word="${escHtml(w)}">×</span></span>`).join('');
 
   const freq = loadFrequentFields().sort((a, b) => b.count - a.count);
-  freqLabel.textContent = '常用字段 (' + freq.length + ')';
+  freqLabel.textContent = '常用字段' + (freq.length ? ' (' + freq.length + ')' : ' · 暂无');
   freqBody.innerHTML = freq.map(f => `<span class="search-tag freq" data-word="${escHtml(f.key)}">${escHtml(f.key)}<span class="tag-x" data-del="freq" data-word="${escHtml(f.key)}">×</span></span>`).join('');
 
   histBody.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
