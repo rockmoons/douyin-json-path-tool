@@ -428,6 +428,21 @@ body {
 }
 #btn-save:hover:not(:disabled), #btn-plugin-db:hover { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
 #btn-save:disabled { opacity:0.45; cursor:not-allowed; }
+.db-input {
+  width:100%; background:var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
+  color:var(--c-text); padding:7px 10px; font-size:12px; font-family:var(--font-body);
+  transition:border var(--transition-fast);
+}
+.db-input:focus { outline:none; border-color:var(--c-primary); }
+.db-select {
+  width:100%; background:var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
+  color:var(--c-text); padding:7px 10px; font-size:12px; font-family:var(--font-body); cursor:pointer;
+  transition:border var(--transition-fast); -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center; padding-right:28px;
+}
+.db-select:focus { outline:none; border-color:var(--c-primary); }
+.db-select option { background:var(--c-surface2); color:var(--c-text); }
 #btn-plugin-db.active { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
 </style>
 </head>
@@ -2270,20 +2285,31 @@ btnSave.addEventListener('click', () => {
 
   const db = loadDB();
   const categories = [...new Set(db.map(r => (r.category || '').trim()).filter(Boolean))];
-  const catOptions = categories.map(c => `<option value="${escHtml(c)}">`).join('');
+  const catSelectId = 'save-cat-select';
+  const catInputId = 'save-cat-new';
+
+  const catOpts = categories.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  const catSection = categories.length > 0
+    ? `<select id="${catSelectId}" class="db-select" style="width:100%;margin-bottom:4px;" onchange="(function(){const v=this.value;const n=document.getElementById('${catInputId}');if(v==='__new__'){n.style.display='block';n.focus();}else{n.style.display='none';}})()">
+          <option value="">不选择</option>
+          ${catOpts}
+          <option value="__new__" style="color:var(--c-primary);">+ 新分类</option>
+        </select>`
+    : `<div style="font-size:11px;color:var(--c-text-muted);margin-bottom:4px;">暂无分类，输入名称即可创建</div>`;
+  const catInputHTML = `<input type="text" id="${catInputId}" class="db-input" placeholder="输入新分类名称" maxlength="40" style="display:none;" />`;
 
   showModal(`
     <h3>保存插件配置</h3>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
       <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">名称 *</div>
-        <input type="text" id="save-name" placeholder="输入配置名称" maxlength="80" />
+        <input type="text" id="save-name" class="db-input" placeholder="输入配置名称" maxlength="80" />
       </div>
       <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">描述</div>
-        <input type="text" id="save-desc" placeholder="可选描述内容" maxlength="200" />
+        <input type="text" id="save-desc" class="db-input" placeholder="可选描述内容" maxlength="200" />
       </div>
       <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">分类</div>
-        <input type="text" id="save-cat" list="save-cat-list" placeholder="输入或选择分类" maxlength="40" />
-        <datalist id="save-cat-list">${catOptions}</datalist>
+        ${catSection}
+        ${catInputHTML}
       </div>
       <div class="field-count-hint">将保存 ${selCount} 个字段</div>
     </div>
@@ -2300,7 +2326,14 @@ btnSave.addEventListener('click', () => {
     const name = nameInput.value.trim();
     if (!name) return;
     const desc = document.getElementById('save-desc').value.trim();
-    const cat = (document.getElementById('save-cat').value || '').trim();
+    let cat;
+    if (categories.length > 0) {
+      const sel = document.getElementById(catSelectId).value;
+      if (sel === '__new__') cat = (document.getElementById(catInputId).value || '').trim();
+      else cat = sel;
+    } else {
+      cat = (document.getElementById(catInputId).value || '').trim();
+    }
     const newRecord = {
       id: Date.now(),
       name, desc, category: cat || '未分类',
@@ -2460,19 +2493,31 @@ function editRecord(id) {
   const db = loadDB();
   const rec = db.find(r => r.id === id);
   if (!rec) return;
-  const catOptions = [...new Set(db.map(r => (r.category || '').trim()).filter(Boolean))].map(c => `<option value="${escHtml(c)}">`).join('');
+  const categories = [...new Set(db.map(r => (r.category || '').trim()).filter(Boolean))];
+  const catSelectId = 'edit-cat-select'; const catInputId = 'edit-cat-new';
+  const curCat = (rec.category || '').trim();
+  const catOpts = categories.map(c => `<option value="${escHtml(c)}"${c===curCat?' selected':''}>${escHtml(c)}</option>`).join('');
+  const catSection = categories.length > 0
+    ? `<select id="${catSelectId}" class="db-select" style="width:100%;margin-bottom:4px;" onchange="(function(){const v=this.value;const n=document.getElementById('${catInputId}');if(v==='__new__'){n.style.display='block';n.focus();}else{n.style.display='none';}})()">
+          <option value="">不选择</option>
+          ${catOpts}
+          <option value="__new__" style="color:var(--c-primary);">+ 新分类</option>
+        </select>`
+    : `<div style="font-size:11px;color:var(--c-text-muted);margin-bottom:4px;">暂无分类，输入名称即可创建</div>`;
+  const catInputHTML = `<input type="text" id="${catInputId}" class="db-input" placeholder="输入新分类名称" maxlength="40" style="display:none;" />`;
+
   showModal(`
     <h3>编辑插件配置</h3>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
       <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">名称 *</div>
-        <input type="text" id="edit-name" value="${escHtml(rec.name)}" maxlength="80" />
+        <input type="text" id="edit-name" class="db-input" value="${escHtml(rec.name)}" maxlength="80" />
       </div>
       <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">描述</div>
-        <input type="text" id="edit-desc" value="${escHtml(rec.desc || '')}" maxlength="200" />
+        <input type="text" id="edit-desc" class="db-input" value="${escHtml(rec.desc || '')}" maxlength="200" />
       </div>
       <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">分类</div>
-        <input type="text" id="edit-cat" list="edit-cat-list" value="${escHtml(rec.category || '')}" maxlength="40" />
-        <datalist id="edit-cat-list">${catOptions}</datalist>
+        ${catSection}
+        ${catInputHTML}
       </div>
     </div>
     <div class="modal-actions">
@@ -2487,7 +2532,15 @@ function editRecord(id) {
     if (!name) return;
     rec.name = name;
     rec.desc = document.getElementById('edit-desc').value.trim();
-    rec.category = (document.getElementById('edit-cat').value || '').trim() || '未分类';
+    let cat;
+    if (categories.length > 0) {
+      const sel = document.getElementById(catSelectId).value;
+      if (sel === '__new__') cat = (document.getElementById(catInputId).value || '').trim();
+      else cat = sel;
+    } else {
+      cat = (document.getElementById(catInputId).value || '').trim();
+    }
+    rec.category = cat || '未分类';
     saveDB(db);
     closeModal();
     updateDbBadge();
