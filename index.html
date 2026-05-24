@@ -802,24 +802,7 @@ function executeSearch(term) {
   updateStorageRate();
 }
 
-// Record frequent field when user searches + selects
-const _origHandleBtnClick = handleBtnClick;
-handleBtnClick = function(entry) {
-  const prevState = entry.state;
-  _origHandleBtnClick(entry);
-  if (prevState === 'previewed' && entry.state === 'selected') {
-    const sb = $('search-box');
-    const q = sb ? sb.value.trim() : '';
-    if (q) {
-      const freq = loadFrequentFields();
-      const exist = freq.find(f => f.key === entry.keyName);
-      if (exist) exist.count++;
-      else freq.push({ key: entry.keyName, count: 1 });
-      saveFrequentFields(freq);
-      renderSearchExtras();
-    }
-  }
-};
+
 
 // Search button
 btnDoSearch.addEventListener('click', () => {
@@ -1996,6 +1979,26 @@ function handleBtnClick(entry) {
     renderOutput();
   }
 }
+
+// Record frequent field when user searches + selects
+(function(){
+  const orig = handleBtnClick;
+  handleBtnClick = function(entry) {
+    const prevState = entry.state;
+    orig(entry);
+    if (prevState === 'previewed' && entry.state === 'selected') {
+      const q = searchBox.value.trim();
+      if (q) {
+        const freq = loadFrequentFields();
+        const exist = freq.find(f => f.key === entry.keyName);
+        if (exist) exist.count++;
+        else freq.push({ key: entry.keyName, count: 1 });
+        saveFrequentFields(freq);
+        renderSearchExtras();
+      }
+    }
+  };
+})();
 
 function refreshAll() {
   const buttons = selectorButtons.querySelectorAll('.leaf-btn');
