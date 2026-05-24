@@ -436,13 +436,16 @@ body {
 .db-input:focus { outline:none; border-color:var(--c-primary); }
 .db-select {
   width:100%; background:var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
-  color:var(--c-text); padding:7px 10px; font-size:12px; font-family:var(--font-body); cursor:pointer;
-  transition:border var(--transition-fast); -webkit-appearance:none; appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
-  background-repeat:no-repeat; background-position:right 10px center; padding-right:28px;
+  color:var(--c-text); padding:8px 12px; font-size:12px; font-family:var(--font-body); cursor:pointer;
+  transition:all var(--transition-fast); -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center; padding-right:32px;
 }
-.db-select:focus { outline:none; border-color:var(--c-primary); }
-.db-select option { background:var(--c-surface2); color:var(--c-text); }
+.db-select:hover { border-color:var(--c-primary-dim); }
+.db-select:focus { outline:none; border-color:var(--c-primary); box-shadow:0 0 0 3px var(--c-primary-glow); }
+.db-select option { background:var(--c-surface); color:var(--c-text); padding:8px; }
+.db-select option:hover, .db-select option:checked { background:var(--c-primary); color:#fff; }
+.db-select option[value="__new__"] { color:var(--c-success); font-weight:500; }
 #btn-plugin-db.active { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
 </style>
 </head>
