@@ -358,6 +358,11 @@ body {
 }
 .output-field-row .output-remove { color:var(--c-text-muted); cursor:pointer; font-size:14px; padding:0 4px; transition:color var(--transition-fast); flex-shrink:0; }
 .output-field-row .output-remove:hover { color: var(--c-error); }
+.output-field-row.just-added { animation: justAddedFade 1.5s ease-out; }
+@keyframes justAddedFade {
+  0% { background:rgba(59,130,246,0.25); }
+  100% { background:transparent; }
+}
 #output-code-block {
   background: var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
   padding:14px 16px; font-family:var(--font-mono); font-size:12px; line-height:1.8; color: #4ade80;
@@ -1735,7 +1740,7 @@ function selectAllArrayField(arrPath, fieldName) {
 
   runDeDup();
   refreshAll();
-  renderOutput();
+  renderOutput(first.id);
   showToast('已选通配符 ' + arrPath + '[*].' + fieldName);
   debugLog('🔘全选', '#10B981', `[*].${fieldName} → wildcardPath="${first.wildcardPath}"`, arrPath);
 }
@@ -1778,7 +1783,7 @@ function handleBtnClick(entry) {
     entry.state = 'selected';
     runDeDup();
     refreshAll();
-    renderOutput();
+    renderOutput(entry.id);
   } else if (entry.state === 'selected') {
     entry.state = 'default';
     runDeDup();
@@ -2246,7 +2251,7 @@ function updateOutputCodeOnly() {
   }
 }
 
-function renderOutput() {
+function renderOutput(flashEntryId) {
   const selected = state.leafEntries.filter(e => e.state === 'selected');
   outputFieldsList.innerHTML = '';
   const fields = {};
@@ -2257,7 +2262,9 @@ function renderOutput() {
 
     const row = document.createElement('div');
     row.className = 'output-field-row';
+    row.setAttribute('data-entry-id', entry.id);
     if (entry.wildcardPath) row.classList.add('wildcard-row');
+    if (flashEntryId && entry.id === flashEntryId) row.classList.add('just-added');
 
     const keyInput = document.createElement('input');
     keyInput.className = 'output-key-input';
@@ -2308,6 +2315,31 @@ function renderOutput() {
   } else {
     setOutputCode({ fields });
     btnSave.disabled = false;
+  }
+
+  // Flash + scroll to newly added entry
+  if (flashEntryId) {
+    requestAnimationFrame(() => {
+      const flashRow = outputFieldsList.querySelector(`[data-entry-id="${flashEntryId}"]`);
+      if (flashRow) {
+        flashRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const disp = flashRow.querySelector('.output-path-display');
+        if (disp) { disp.style.background = 'var(--c-primary-glow)'; setTimeout(() => { disp.style.background = ''; }, 1200); }
+        setTimeout(() => flashRow.classList.remove('just-added'), 1500);
+      }
+      // Flash code block line
+      const codeText = outputCodeEl.textContent;
+      const flashEntry = state.leafEntries.find(e => e.id === flashEntryId);
+      if (flashEntry && codeText) {
+        const pathStr = flashEntry.wildcardPath || buildFullPath(flashEntry);
+        const codeIdx = codeText.indexOf(pathStr);
+        if (codeIdx >= 0) {
+          const codeLine = codeText.substring(0, codeIdx).split('\n').length;
+          const lineTop = Math.max(0, (codeLine - 3) * 22);
+          outputCodeEl.scrollTop = lineTop;
+        }
+      }
+    });
   }
 }
 
