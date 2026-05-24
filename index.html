@@ -172,6 +172,54 @@ body {
   flex-shrink:0;
 }
 #search-box:focus { outline:none; border-color: var(--c-primary); }
+/* Search bar with AI toggle */
+#search-bar { display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-shrink:0; }
+#search-box { flex:1; }
+#btn-ai-toggle {
+  padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer;
+  border:1px solid var(--c-border); background:var(--c-surface2); color:var(--c-text-muted);
+  transition:all var(--transition-fast); white-space:nowrap; flex-shrink:0;
+}
+#btn-ai-toggle:hover:not(:disabled) { background:var(--c-border); color:var(--c-text); }
+#btn-ai-toggle.active { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+#btn-ai-toggle:disabled { opacity:0.4; cursor:not-allowed; }
+#btn-do-search {
+  padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:500;
+  border:1px solid var(--c-border); background:var(--c-surface2); color:var(--c-text-dim);
+  transition:all var(--transition-fast); white-space:nowrap; flex-shrink:0;
+}
+#btn-do-search:hover { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+#btn-do-search:disabled { opacity:0.4; cursor:not-allowed; }
+/* Search extras */
+#search-extras { flex-shrink:0; margin-bottom:4px; }
+.search-extra-group { margin-bottom:3px; }
+.search-extra-title {
+  font-size:10px; color:var(--c-text-muted); cursor:pointer; user-select:none;
+  display:inline-flex; align-items:center; gap:3px; padding:2px 0; transition:color var(--transition-fast);
+}
+.search-extra-title:hover { color:var(--c-text-dim); }
+.search-extra-title .arrow { font-size:9px; transition:transform var(--transition-fast); display:inline-block; }
+.search-extra-title .arrow.open { transform:rotate(90deg); }
+.search-extra-body { display:flex; flex-wrap:wrap; gap:4px; padding:3px 0; }
+.search-extra-body.collapsed { display:none; }
+.search-tag {
+  display:inline-flex; align-items:center; gap:3px;
+  padding:2px 7px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:500;
+  border:1px solid var(--c-border); transition:all var(--transition-fast); white-space:nowrap; user-select:none;
+}
+.search-tag.hist { background:var(--c-surface2); color:var(--c-text-dim); font-family:var(--font-body); }
+.search-tag.hist:hover { background:var(--c-border); color:var(--c-text); }
+.search-tag.freq { background:rgba(59,130,246,0.12); color:#93c5fd; font-family:var(--font-mono); }
+.search-tag.freq:hover { background:rgba(59,130,246,0.28); color:#bfdbfe; }
+.search-tag .tag-x {
+  font-size:13px; color:inherit; opacity:0.4; line-height:1; cursor:pointer;
+  transition:all var(--transition-fast); margin-left:1px;
+}
+.search-tag .tag-x:hover { opacity:1; color:var(--c-error); }
+/* Header storage */
+#header-storage { font-size:10px; color:var(--c-text-muted); }
+#header-storage.warn { color:var(--c-warning); }
+#header-storage.danger { color:var(--c-error); }
 /* Middle panel actions bar — same style as left panel */
 #batch-actions {
   display:flex; gap:6px; margin-bottom:8px; flex-shrink:0;
@@ -470,6 +518,7 @@ body {
       <input type="password" id="api-key-input" placeholder="DeepSeek API Key（用于 AI 翻译）" autocomplete="off" />
       <button class="btn-sm btn-toggle" id="btn-api-key-save" title="记住 API Key，刷新页面不丢失">记住</button>
       <span id="header-version">v1.0</span>
+      <span id="header-storage"></span>
       <span id="header-help" title="使用说明">ⓘ 帮助</span>
     </div>
   </div>
@@ -501,7 +550,21 @@ body {
     <div class="panel" id="middle-panel">
       <div class="panel-header"><h2>键名选择器</h2></div>
       <div class="panel-body">
-        <input type="text" id="search-box" placeholder="搜索字段（英文 / 中文）..." disabled />
+        <div id="search-bar">
+          <button id="btn-ai-toggle" disabled title="AI 智能搜索">AI</button>
+          <input type="text" id="search-box" placeholder="搜索字段（英文 / 中文）..." disabled />
+          <button id="btn-do-search" disabled>搜索</button>
+        </div>
+        <div id="search-extras">
+          <div class="search-extra-group" id="hist-group">
+            <span class="search-extra-title" id="hist-title">▸ <span id="hist-label">搜索历史 (0)</span></span>
+            <div class="search-extra-body collapsed" id="hist-body"></div>
+          </div>
+          <div class="search-extra-group" id="freq-group">
+            <span class="search-extra-title" id="freq-title">▸ <span id="freq-label">常用字段 (0)</span></span>
+            <div class="search-extra-body collapsed" id="freq-body"></div>
+          </div>
+        </div>
         <div id="batch-actions">
           <button class="btn-sm" id="btn-select-all" disabled>全选</button>
           <button class="btn-sm" id="btn-invert" disabled>反选</button>
@@ -617,6 +680,209 @@ function getCategories(db) {
   db.forEach(r => { const c = (r.category || '').trim(); if (c) cats.add(c); });
   if (db.some(r => !(r.category || '').trim())) cats.add('未分类');
   return [...cats];
+}
+
+// ==================== SEARCH HISTORY & FREQUENT FIELDS ====================
+function loadSearchHistory() { try { return JSON.parse(localStorage.getItem('douyin_search_history')) || []; } catch { return []; } }
+function saveSearchHistory(h) { try { localStorage.setItem('douyin_search_history', JSON.stringify(h.slice(0, 20))); } catch {} }
+function loadFrequentFields() { try { return JSON.parse(localStorage.getItem('douyin_frequent_fields')) || []; } catch { return []; } }
+function saveFrequentFields(f) { try { localStorage.setItem('douyin_frequent_fields', JSON.stringify(f.slice(0, 20))); } catch {} }
+
+function updateStorageRate() {
+  try {
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('douyin_')) total += (localStorage.getItem(k) || '').length * 2;
+    }
+    const pct = Math.round(total / (5 * 1024 * 1024) * 100);
+    if (pct === 0) { headerStorage.textContent = ''; headerStorage.className = ''; }
+    else {
+      headerStorage.textContent = '\u00B7 存储 ' + pct + '%';
+      headerStorage.className = pct > 90 ? 'danger' : pct > 70 ? 'warn' : '';
+    }
+    headerStorage.title = '已用 ' + (total / 1024).toFixed(1) + 'KB / 5MB';
+    return total < 4 * 1024 * 1024;
+  } catch { headerStorage.textContent = '\u00B7 存储 不可用'; headerStorage.className = 'warn'; return false; }
+}
+
+function renderSearchExtras() {
+  const hist = loadSearchHistory();
+  histLabel.textContent = '搜索历史 (' + hist.length + ')';
+  histBody.innerHTML = hist.map(w => `<span class="search-tag hist" data-word="${escHtml(w)}">${escHtml(w)}<span class="tag-x" data-del="hist" data-word="${escHtml(w)}">×</span></span>`).join('');
+
+  const freq = loadFrequentFields().sort((a, b) => b.count - a.count);
+  freqLabel.textContent = '常用字段 (' + freq.length + ')';
+  freqBody.innerHTML = freq.map(f => `<span class="search-tag freq" data-word="${escHtml(f.key)}">${escHtml(f.key)}<span class="tag-x" data-del="freq" data-word="${escHtml(f.key)}">×</span></span>`).join('');
+
+  // Bind tag clicks
+  histBody.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
+    if (e.target.classList.contains('tag-x')) return;
+    doSearch(t.dataset.word);
+  }));
+  freqBody.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
+    if (e.target.classList.contains('tag-x')) return;
+    doSearch(t.dataset.word);
+  }));
+  // Bind delete
+  histBody.querySelectorAll('.tag-x').forEach(x => x.addEventListener('click', e => {
+    e.stopPropagation();
+    const w = x.dataset.word;
+    const h = loadSearchHistory().filter(v => v !== w);
+    saveSearchHistory(h);
+    renderSearchExtras();
+  }));
+  freqBody.querySelectorAll('.tag-x').forEach(x => x.addEventListener('click', e => {
+    e.stopPropagation();
+    const w = x.dataset.word;
+    const f = loadFrequentFields().filter(v => v.key !== w);
+    saveFrequentFields(f);
+    renderSearchExtras();
+  }));
+
+  // Restore expand/collapse state
+  const histOpen = localStorage.getItem('douyin_hist_open') === '1';
+  const freqOpen = localStorage.getItem('douyin_freq_open') === '1';
+  histBody.classList.toggle('collapsed', !histOpen);
+  freqBody.classList.toggle('collapsed', !freqOpen);
+  $('hist-title').querySelector('.arrow')?.classList.toggle('open', histOpen);
+  $('freq-title').querySelector('.arrow')?.classList.toggle('open', freqOpen);
+}
+
+// Expand/collapse toggle for search extras
+['hist', 'freq'].forEach(type => {
+  $(type + '-title').addEventListener('click', () => {
+    const body = $(type + '-body');
+    const arrow = $(type + '-title').querySelector('.arrow');
+    const isOpen = !body.classList.contains('collapsed');
+    body.classList.toggle('collapsed', isOpen);
+    if (arrow) arrow.classList.toggle('open', !isOpen);
+    localStorage.setItem('douyin_' + type + '_open', isOpen ? '0' : '1');
+  });
+});
+
+function doSearch(term, skipDebounce) {
+  if (!term || !term.trim()) return;
+  searchBox.value = term.trim();
+  if (!skipDebounce) {
+    clearTimeout(searchBox._debounce);
+    searchBox._debounce = setTimeout(() => executeSearch(term.trim()), 200);
+  } else {
+    executeSearch(term.trim());
+  }
+}
+function executeSearch(term) {
+  for (const e of state.leafEntries) { if (e.state === 'previewed') e.state = 'default'; }
+  clearAllHighlights();
+  applySearchFilter();
+  expandAllMiddleGroups();
+  // Record search history if results found
+  const vis = selectorButtons.querySelectorAll('.leaf-btn:not([style*="display: none"])');
+  if (vis.length > 0 && term.length >= 1) {
+    let hist = loadSearchHistory().filter(v => v !== term);
+    hist.unshift(term);
+    saveSearchHistory(hist);
+    renderSearchExtras();
+  }
+  updateStorageRate();
+}
+
+// Record frequent field when user searches + selects
+const _origHandleBtnClick = handleBtnClick;
+handleBtnClick = function(entry) {
+  const prevState = entry.state;
+  _origHandleBtnClick(entry);
+  if (prevState === 'previewed' && entry.state === 'selected') {
+    const q = searchBox.value.trim();
+    if (q) {
+      const freq = loadFrequentFields();
+      const exist = freq.find(f => f.key === entry.keyName);
+      if (exist) exist.count++;
+      else freq.push({ key: entry.keyName, count: 1 });
+      saveFrequentFields(freq);
+      renderSearchExtras();
+    }
+  }
+};
+
+// Search button
+btnDoSearch.addEventListener('click', () => {
+  const q = searchBox.value.trim();
+  if (!q) return;
+  if (btnAiToggle.classList.contains('active')) {
+    aiSearch(q);
+  } else {
+    doSearch(q, true);
+  }
+});
+
+// ==================== AI SEARCH ====================
+let _aiSearchCount = 0;
+let _aiSearchReset = Date.now();
+let _aiSearching = false;
+
+async function aiSearch(query) {
+  if (_aiSearching) return;
+  if (!state.leafEntries.length) { showToast('请先格式化 JSON', 'warning'); return; }
+  const apiKey = apiKeyInput.value.trim();
+  if (!apiKey) { showToast('请先填写 API Key', 'warning'); btnAiToggle.classList.remove('active'); btnAiToggle.textContent = 'AI'; return; }
+  const now = Date.now();
+  if (now - _aiSearchReset > 60000) { _aiSearchCount = 0; _aiSearchReset = now; }
+  if (_aiSearchCount >= 5) { showToast('AI 搜索限流（5次/分钟）', 'warning'); return; }
+  _aiSearchCount++; _aiSearching = true;
+  btnDoSearch.textContent = '搜索中...'; btnDoSearch.disabled = true;
+
+  const fields = [...new Set(state.leafEntries.map(e => e.keyName))].slice(0, 200);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: '字段列表：' + JSON.stringify(fields) + '。用户描述："' + query + '"。请从字段列表中找到最匹配的1-3个字段名。只返回JSON数组格式：["field1","field2"]。无匹配返回[]。' }],
+        temperature: 0.05, max_tokens: 256
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content || '[]';
+    const match = content.match(/\[[\s\S]*\]/);
+    const found = match ? JSON.parse(match[0]) : [];
+    const valid = found.filter(f => state.leafEntries.some(e => e.keyName === f));
+    if (valid.length > 0) {
+      doSearch(valid.join(' '), true);
+      showToast('AI 找到 ' + valid.length + ' 个匹配字段');
+    } else {
+      showToast('AI 未找到匹配字段，尝试更具体的描述', 'warning');
+    }
+  } catch { showToast('AI 服务暂不可用', 'error'); }
+  _aiSearching = false;
+  btnDoSearch.textContent = 'AI 搜索'; btnDoSearch.disabled = false;
+}
+
+// AI toggle
+btnAiToggle.addEventListener('click', () => {
+  if (!state.leafEntries.length) { showToast('请先格式化 JSON', 'warning'); return; }
+  const active = !btnAiToggle.classList.contains('active');
+  btnAiToggle.classList.toggle('active', active);
+  btnAiToggle.textContent = active ? 'AI' : 'AI';
+  searchBox.placeholder = active ? '描述你想要的字段...' : '搜索字段（英文 / 中文）...';
+  btnDoSearch.textContent = active ? 'AI 搜索' : '搜索';
+});
+
+// Enable search button and AI when formatted
+function enableSearchBar() {
+  searchBox.disabled = false;
+  btnDoSearch.disabled = false;
+  btnAiToggle.disabled = false;
+  btnAiToggle.classList.remove('active'); btnAiToggle.textContent = 'AI';
+  searchBox.placeholder = '搜索字段（英文 / 中文）...';
+  btnDoSearch.textContent = '搜索';
+  renderSearchExtras();
+  updateStorageRate();
 }
 
 // ==================== CONSTANTS ====================
@@ -743,6 +1009,13 @@ const btnApiKeySave = $('btn-api-key-save');
 const btnSave = $('btn-save');
 const btnPluginDb = $('btn-plugin-db');
 const dbImportFile = $('db-import-file');
+const btnAiToggle = $('btn-ai-toggle');
+const btnDoSearch = $('btn-do-search');
+const headerStorage = $('header-storage');
+const histBody = $('hist-body');
+const freqBody = $('freq-body');
+const histLabel = $('hist-label');
+const freqLabel = $('freq-label');
 console.log('📎 DOM 引用已获取, btnFormat:', !!btnFormat, ', jsonInput:', !!jsonInput);
 
 // ==================== API KEY PERSISTENCE ====================
@@ -933,10 +1206,11 @@ function doFormat(raw, skipConfirm, skipTranslate) {
   state.leafEntries = []; extractLeafPaths([state.treeNodes], []);
   prefillTranslations();
   renderSelectorButtons();
-  searchBox.disabled = false; btnSelectAll.disabled = false; btnInvert.disabled = false; btnClear.disabled = false;
+  enableSearchBar();
+  btnSelectAll.disabled = false; btnInvert.disabled = false; btnClear.disabled = false;
   btnFilterEmpty.disabled = false; btnFilterEmpty.classList.remove('active'); filterEmptyActive = false;
   btnTranslation.disabled = false; btnSave.disabled = false;
-  renderOutput(); updateDbBadge();
+  renderOutput(); updateDbBadge(); updateStorageRate();
   if (!skipTranslate) translateWithAPI();
   debugLog('🟢系统', '#8B5CF6', '格式化完成: ' + state.leafEntries.length + ' 个叶子字段');
   return true;
@@ -964,6 +1238,11 @@ function resetAll() {
   btnTranslation.disabled = true;
   btnTranslation.textContent = '翻译对照表';
   btnSave.disabled = true;
+  searchBox.disabled = true; btnDoSearch.disabled = true; btnAiToggle.disabled = true;
+  btnAiToggle.classList.remove('active'); btnAiToggle.textContent = 'AI';
+  searchBox.placeholder = '搜索字段（英文 / 中文）...'; btnDoSearch.textContent = '搜索';
+  histBody.innerHTML = ''; freqBody.innerHTML = '';
+  histLabel.textContent = '搜索历史 (0)'; freqLabel.textContent = '常用字段 (0)';
   outputFieldsList.innerHTML = '<div class="empty-state-msg">← 请在中间选择要抽取的字段</div>';
   setOutputCode({ fields: {} });
   progressBar.style.display = 'none';
@@ -2359,7 +2638,7 @@ btnSave.addEventListener('click', () => {
     db.push(newRecord);
     saveDB(db);
     closeModal();
-    updateDbBadge();
+    updateDbBadge(); updateStorageRate();
     const size = (getStorageSize(db) / 1024).toFixed(1);
     showToast('已保存：' + name + '（' + selCount + '字段，约' + size + 'KB）');
   });
@@ -2526,7 +2805,7 @@ function initDBEvents() {
     if (confirm('确定删除「' + rec2.name + '」？此操作不可恢复。')) {
       const newDb = db2.filter(r => r.id !== id);
       saveDB(newDb);
-      updateDbBadge();
+      updateDbBadge(); updateStorageRate();
       renderDBDialog(true);
     }
   }));
@@ -2671,7 +2950,7 @@ dbImportFile.addEventListener('change', () => {
         if (existingIds.has(r.id)) skipped++;
         else { db.push(r); added++; existingIds.add(r.id); }
       }
-      saveDB(db); updateDbBadge();
+      saveDB(db); updateDbBadge(); updateStorageRate();
       showToast('导入完成：新增 ' + added + ' 条，跳过 ' + skipped + ' 条重复');
       if (modalOverlay.classList.contains('active') && modalBox.innerHTML.includes('插件数据库')) renderDBDialog();
     } catch { showToast('文件格式错误，无法导入', 'error'); }
