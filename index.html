@@ -2180,10 +2180,10 @@ if (!localStorage.getItem('douyin_onboarding_seen')) {
         </div>
       </div>
       <div class="modal-actions">
+        <button class="modal-btn" onclick="localStorage.setItem('douyin_onboarding_seen','1');closeModal()" style="font-size:11px;color:var(--c-text-muted);">不再提醒</button>
         <button class="modal-btn primary" onclick="closeModal()">知道了</button>
       </div>
     `);
-    localStorage.setItem('douyin_onboarding_seen', '1');
   }, 600);
 }
 
