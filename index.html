@@ -583,7 +583,8 @@ function getStorageSize(db) {
 }
 function updateDbBadge() {
   const db = loadDB();
-  btnPluginDb.textContent = db.length > 0 ? '插件数据库 (' + db.length + ')' : '插件数据库';
+  const btn = document.getElementById('btn-plugin-db');
+  if (btn) btn.textContent = db.length > 0 ? '插件数据库 (' + db.length + ')' : '插件数据库';
 }
 function getCategories(db) {
   const cats = new Set();
