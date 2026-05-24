@@ -130,7 +130,7 @@ body {
 #tree-container .empty-state { text-align:center; padding:40px 20px; color: var(--c-text-muted); font-size:12px; }
 
 /* Tree styles */
-.tree-node { margin-left:0; user-select:none; }
+.tree-node { margin-left:0; }
 .tree-node .node-row { display:flex; align-items:center; padding:3px 0; padding-left:calc(var(--depth,0)*18px); cursor:default; border-radius:3px; transition:background 80ms; font-size:12px; }
 .tree-node .node-row:hover { background: rgba(255,255,255,0.03); }
 .tree-node .node-row.highlight { background: var(--c-highlight-bg); animation: highlightPulse 2s ease-out; }
@@ -539,7 +539,7 @@ body {
     <div class="panel" id="left-panel">
       <div class="panel-header"><h2>JSON 元数据</h2></div>
       <div class="panel-body">
-        <textarea id="json-input" placeholder='在此粘贴抖音 API 返回的 JSON 元数据...'></textarea>
+        <textarea id="json-input" placeholder='在此粘贴抖音 API 返回的 JSON 元数据...' spellcheck="false"></textarea>
         <div id="json-actions-bar">
           <div id="json-toolbar">
             <button class="btn-sm" id="btn-clear-input" title="清空输入框">清空</button>
@@ -1903,6 +1903,35 @@ function highlightInTree(entry) {
       });
     });
   });
+  scrollInputToField(entry);
+}
+
+function scrollInputToField(entry) {
+  const raw = jsonInput.value;
+  if (!raw || !entry) return;
+  const key = entry.keyName;
+  if (!key) return;
+
+  // Build search patterns: try quoted key then bare key
+  const patterns = [`"${key}"`, key];
+  let idx = -1;
+  for (const p of patterns) {
+    idx = raw.indexOf(p, idx > -1 ? idx : 0);
+    if (idx >= 0) break;
+  }
+  if (idx < 0) return;
+
+  // Calculate line number
+  const line = raw.substring(0, idx).split('\n').length;
+
+  // Scroll textarea to that line (approximate: line * lineHeight)
+  const lineHeight = 19; // ~12px font * 1.6 line-height
+  const scrollTarget = Math.max(0, (line - 3) * lineHeight);
+  jsonInput.scrollTop = scrollTarget;
+
+  // Brief highlight pulse on the textarea
+  jsonInput.style.boxShadow = 'inset 0 0 0 2px var(--c-primary-glow)';
+  setTimeout(() => { jsonInput.style.boxShadow = ''; }, 800);
 }
 
 function expandMiddleGroup(path) {
@@ -2198,7 +2227,11 @@ function setOutputCode(jsonObj) {
   _outputPlainText = json;
   outputCodeEl.textContent = json;
   outputStats.style.display = jsonObj.fields && Object.keys(jsonObj.fields).length ? 'block' : 'none';
-  if (jsonObj.fields) outputStats.textContent = '已选 ' + Object.keys(jsonObj.fields).length + ' 个字段';
+  if (jsonObj.fields) {
+    const keys = Object.keys(jsonObj.fields);
+    const kinds = new Set(keys.map(k => k.replace(/_\d+$/, ''))).size;
+    outputStats.textContent = '已选 ' + keys.length + ' 个条目' + (kinds !== keys.length ? '（' + kinds + ' 种字段）' : '');
+  }
 }
 function updateOutputCodeOnly() {
   const selected = state.leafEntries.filter(e => e.state === 'selected');
