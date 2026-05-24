@@ -1704,12 +1704,14 @@ function highlightInTree(entry) {
     expandMiddleGroup(pp);
   }
 
-  // Double rAF then scroll
+  // Triple rAF: wait for parent expansion DOM reflow, then scroll smoothly into view
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      row.classList.add('highlight');
-      setTimeout(() => row.classList.remove('highlight'), 2200);
+      requestAnimationFrame(() => {
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        row.classList.add('highlight');
+        setTimeout(() => row.classList.remove('highlight'), 2200);
+      });
     });
   });
 }
