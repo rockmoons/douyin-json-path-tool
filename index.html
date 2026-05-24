@@ -2448,8 +2448,8 @@ function renderDBDialog(firstOpen) {
     <input class="db-search" id="db-search-input" placeholder="搜索名称或描述..." value="${escHtml(_dbSearch)}" />
     <div class="db-tabs" id="db-tabs">${catTabs}</div>
     <div class="db-sort-bar" id="db-sort-bar"><span class="sort-label">排序：</span>${sortBtns}</div>
-    <div class="db-table-wrap"><table class="db-table"><thead><tr><th>#</th><th>名称</th><th>描述</th><th>分类</th><th>时间</th><th>操作</th></tr></thead><tbody>${tableBody}</tbody></table></div>
-    ${pagination}
+    <div class="db-table-wrap"><table class="db-table"><thead><tr><th>#</th><th>名称</th><th>描述</th><th>分类</th><th>时间</th><th>操作</th></tr></thead><tbody>${buildTableBody()}</tbody></table></div>
+    ${(function(){const f2=loadDB();let f3=[...f2];if(_dbCat!=='全部')f3=f3.filter(r=>(r.category||'未分类')===_dbCat);if(_dbSearch){const q=_dbSearch.toLowerCase().split(/\s+/).filter(Boolean);f3=f3.filter(r=>((r.name||'')+' '+(r.desc||'')).toLowerCase().includes(q.join(' ')));}f3.sort((a,b)=>{if(_dbSort==='name')return _dbSortAsc?a.name.localeCompare(b.name,'zh-CN'):b.name.localeCompare(a.name,'zh-CN');if(_dbSort==='id')return _dbSortAsc?a.id-b.id:b.id-a.id;return _dbSortAsc?new Date(a.createdAt)-new Date(b.createdAt):new Date(b.createdAt)-new Date(a.createdAt);});const tp=Math.max(1,Math.ceil(f3.length/PAGE_SIZE));return f3.length<=PAGE_SIZE?'':`<div class="db-pagination"><button data-pg="${_dbPage-1}" ${_dbPage<=1?'disabled':''}>◀</button><span>${_dbPage} / ${tp}</span><button data-pg="${_dbPage+1}" ${_dbPage>=tp?'disabled':''}>▶</button></div>`;})()}
     <div class="db-bottom-bar">
       <div class="db-io-btns">
         <button class="btn-sm" id="btn-export-db">导出</button>
