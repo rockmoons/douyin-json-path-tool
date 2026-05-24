@@ -1786,7 +1786,8 @@ function handleBtnClick(entry) {
     orig(entry);
     if (prevState === 'previewed' && entry.state === 'selected') {
       const q = searchBox.value.trim();
-      if (q) {
+      // Skip pure array indices like [0] [1] [2]
+      if (q && !/^\[\d+\]$/.test(entry.keyName)) {
         const freq = loadFrequentFields();
         const exist = freq.find(f => f.key === entry.keyName);
         if (exist) exist.count++;
@@ -2779,6 +2780,14 @@ dbImportFile.addEventListener('change', () => {
 // Enable save button when fields are selected (called after renderOutput)
 updateDbBadge();
 
+// Clean polluted data: remove array indices from hist and frequent fields
+(function(){
+  const hist = loadSearchHistory().filter(w => !/^\[\d+\]$/.test(w));
+  if (hist.length < (JSON.parse(localStorage.getItem('douyin_search_history')||'[]')).length) saveSearchHistory(hist);
+  const freq = loadFrequentFields().filter(f => !/^\[\d+\]$/.test(f.key));
+  if (freq.length < (JSON.parse(localStorage.getItem('douyin_frequent_fields')||'[]')).length) saveFrequentFields(freq);
+})();
+
 // ==================== SEARCH HISTORY & FREQUENT FIELDS ====================
 function loadSearchHistory() { try { return JSON.parse(localStorage.getItem('douyin_search_history')) || []; } catch { return []; } }
 function saveSearchHistory(h) { try { localStorage.setItem('douyin_search_history', JSON.stringify(h.slice(0, 20))); } catch {} }
@@ -2814,11 +2823,11 @@ function renderSearchExtras() {
 
   histBody.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
     if (e.target.classList.contains('tag-x')) return;
-    doSearch(t.dataset.word);
+    doSearch(t.dataset.word, false, true);
   }));
   freqBody.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
     if (e.target.classList.contains('tag-x')) return;
-    doSearch(t.dataset.word);
+    doSearch(t.dataset.word, false, true);
   }));
   histBody.querySelectorAll('.tag-x').forEach(x => x.addEventListener('click', e => {
     e.stopPropagation();
@@ -2850,21 +2859,24 @@ function renderSearchExtras() {
   });
 });
 
-function doSearch(term, skipDebounce) {
+function doSearch(term, skipDebounce, fromTag) {
   if (!term || !term.trim()) return;
   searchBox.value = term.trim();
   if (!skipDebounce) {
     clearTimeout(searchBox._debounce);
-    searchBox._debounce = setTimeout(() => executeSearch(term.trim()), 200);
-  } else { executeSearch(term.trim()); }
+    searchBox._debounce = setTimeout(() => executeSearch(term.trim(), fromTag), 200);
+  } else { executeSearch(term.trim(), fromTag); }
 }
-function executeSearch(term) {
+function executeSearch(term, fromTag) {
   for (const e of state.leafEntries) { if (e.state === 'previewed') e.state = 'default'; }
   clearAllHighlights(); applySearchFilter(); expandAllMiddleGroups();
-  const vis = selectorButtons.querySelectorAll('.leaf-btn:not([style*="display: none"])');
-  if (vis.length > 0 && term.length >= 1) {
-    let hist = loadSearchHistory().filter(v => v !== term);
-    hist.unshift(term); saveSearchHistory(hist); renderSearchExtras();
+  // Only record search history for user-typed searches (not tag button clicks) and skip array indices
+  if (!fromTag && !/^\[\d+\]$/.test(term) && term.length >= 1) {
+    const vis = selectorButtons.querySelectorAll('.leaf-btn:not([style*="display: none"])');
+    if (vis.length > 0) {
+      let hist = loadSearchHistory().filter(v => v !== term);
+      hist.unshift(term); saveSearchHistory(hist); renderSearchExtras();
+    }
   }
   updateStorageRate();
 }
