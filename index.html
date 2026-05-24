@@ -364,6 +364,71 @@ body {
 .toast.success { background: var(--c-success); color:#fff; }
 .toast.error { background: var(--c-error); color:#fff; }
 .toast.warning { background: var(--c-warning); color:#000; }
+
+/* ==================== Plugin DB ==================== */
+/* Modal animation */
+.modal-overlay { opacity:0; transition:opacity 0.2s; }
+.modal-overlay.active { opacity:1; }
+.modal-overlay.active .modal-box { transform:translateY(0); }
+.modal-box { transform:translateY(8px); transition:transform 0.2s ease-out; }
+
+/* Save dialog specific */
+#save-dialog .field-count-hint { font-size:11px; color:var(--c-text-muted); margin-top:-8px; margin-bottom:8px; }
+#save-dialog input[type="text"] {
+  width:100%; background:var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
+  color:var(--c-text); padding:7px 10px; font-size:12px; font-family:var(--font-body);
+  transition:border var(--transition-fast);
+}
+#save-dialog input[type="text"]:focus { outline:none; border-color:var(--c-primary); }
+#save-dialog input[type="text"].error { border-color:var(--c-error); }
+
+/* DB dialog */
+#db-dialog { max-width:780px; }
+.db-search { width:100%; background:var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm); color:var(--c-text); padding:7px 10px; font-size:12px; margin-bottom:8px; }
+.db-search:focus { outline:none; border-color:var(--c-primary); }
+.db-tabs { display:flex; gap:4px; margin-bottom:6px; flex-wrap:wrap; }
+.db-tab {
+  padding:3px 10px; border-radius:4px; font-size:11px; cursor:pointer; border:1px solid transparent;
+  background:transparent; color:var(--c-text-dim); transition:all var(--transition-fast); white-space:nowrap;
+}
+.db-tab:hover { background:var(--c-surface2); color:var(--c-text); }
+.db-tab.active { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+.db-sort-bar { display:flex; align-items:center; gap:6px; margin-bottom:6px; font-size:11px; color:var(--c-text-muted); }
+.db-sort-bar .sort-label { flex-shrink:0; }
+.db-sort-btn { padding:2px 8px; border-radius:3px; font-size:10px; cursor:pointer; background:transparent; border:1px solid transparent; color:var(--c-text-muted); transition:all var(--transition-fast); }
+.db-sort-btn:hover { background:var(--c-surface2); color:var(--c-text); }
+.db-sort-btn.active { color:var(--c-primary); border-color:var(--c-primary); background:rgba(59,130,246,0.1); }
+.db-table-wrap { max-height:42vh; overflow-y:auto; border:1px solid var(--c-border); border-radius:var(--radius-sm); }
+.db-table { width:100%; border-collapse:collapse; font-size:11px; }
+.db-table th { text-align:left; padding:7px 8px; color:var(--c-text-muted); font-weight:500; border-bottom:1px solid var(--c-border); background:var(--c-surface); position:sticky; top:0; z-index:1; }
+.db-table td { padding:6px 8px; color:var(--c-text-dim); border-bottom:1px solid rgba(255,255,255,0.03); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.db-table tr:hover td { background:rgba(59,130,246,0.06); }
+.db-table .db-actions { display:flex; gap:4px; }
+.db-table .db-btn { padding:2px 8px; border-radius:3px; font-size:10px; cursor:pointer; border:1px solid var(--c-border); background:var(--c-surface2); color:var(--c-text-dim); transition:all var(--transition-fast); }
+.db-table .db-btn:hover { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+.db-table .db-btn.danger:hover { background:var(--c-error); border-color:var(--c-error); }
+.db-pagination { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; font-size:11px; color:var(--c-text-muted); }
+.db-pagination button { padding:2px 10px; border-radius:3px; font-size:10px; cursor:pointer; border:1px solid var(--c-border); background:var(--c-surface2); color:var(--c-text-dim); transition:all var(--transition-fast); }
+.db-pagination button:hover:not(:disabled) { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+.db-pagination button:disabled { opacity:0.3; cursor:default; }
+.db-bottom-bar { display:flex; align-items:center; justify-content:space-between; margin-top:12px; }
+.db-io-btns { display:flex; gap:6px; }
+
+/* Empty states */
+.empty-state-box { text-align:center; padding:32px 20px; color:var(--c-text-muted); border:1px dashed var(--c-border); border-radius:var(--radius-sm); background:rgba(255,255,255,0.012); }
+.empty-state-box .empty-icon { font-size:28px; margin-bottom:8px; opacity:0.6; }
+
+/* Right panel header actions */
+#right-panel .panel-header { gap:8px; }
+#right-panel .panel-header h2 { flex:1; }
+#btn-save, #btn-plugin-db {
+  padding:4px 10px; border-radius:var(--radius-sm); font-size:11px; cursor:pointer; font-weight:500;
+  border:1px solid var(--c-border); background:var(--c-surface2); color:var(--c-text-dim);
+  transition:all var(--transition-fast); white-space:nowrap; flex-shrink:0;
+}
+#btn-save:hover:not(:disabled), #btn-plugin-db:hover { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+#btn-save:disabled { opacity:0.45; cursor:not-allowed; }
+#btn-plugin-db.active { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
 </style>
 </head>
 <body>
@@ -429,7 +494,7 @@ body {
 
     <!-- RIGHT PANEL -->
     <div class="panel" id="right-panel">
-      <div class="panel-header"><h2>JSONPath 输出</h2></div>
+      <div class="panel-header"><h2>JSONPath 输出</h2><button id="btn-save" disabled title="保存当前字段配置">保存</button><button id="btn-plugin-db" title="管理已保存的插件配置">插件数据库</button></div>
       <div class="panel-body">
         <div id="output-fields-list">
           <div class="empty-state-msg">← 请在中间选择要抽取的字段</div>
@@ -455,6 +520,8 @@ body {
 <div id="debug-btn-bar" style="position:fixed;bottom:4px;right:8px;z-index:99;display:flex;gap:4px;">
   <button id="btn-debug-toggle" class="btn-sm" title="开启/关闭调试日志" style="font-size:10px;padding:2px 8px;">🐛</button>
 </div>
+
+<input type="file" id="db-import-file" accept=".json" style="display:none;" />
 
 <!-- ===== MODAL OVERLAY ===== -->
 <div class="modal-overlay" id="modal-overlay">
@@ -486,17 +553,44 @@ window.addEventListener('unhandledrejection', function(e) {
 });
 
 // ==================== STATE ====================
-let filterEmptyActive = false; // 过滤空数据开关
+let filterEmptyActive = false;
+let _saveCooldown = false; // 保存防重复
+let _apiAbortController = null; // API 翻译 abort
 let state = {
   parsedJson: null,
   treeNodes: null,
-  leafEntries: [],         // LeafPathEntry[]
-  translationCache: {},    // { keyName: chineseName }
-  translationSources: {},  // { keyName: 'dict'|'api'|'local' }
+  leafEntries: [],
+  translationCache: {},
+  translationSources: {},
   lastClickTime: 0,
   clickThrottle: 200,
   isFormatting: false,
+  _translationTableHTML: '',
+  _tableCount: 0,
 };
+
+// ==================== PLUGIN DB HELPERS ====================
+function loadDB() {
+  try { return JSON.parse(localStorage.getItem('douyin_plugin_db')) || []; }
+  catch { return []; }
+}
+function saveDB(db) {
+  try { localStorage.setItem('douyin_plugin_db', JSON.stringify(db)); }
+  catch { showToast('存储空间不足', 'error'); }
+}
+function getStorageSize(db) {
+  return new Blob([JSON.stringify(db)]).size;
+}
+function updateDbBadge() {
+  const db = loadDB();
+  btnPluginDb.textContent = db.length > 0 ? '插件数据库 (' + db.length + ')' : '插件数据库';
+}
+function getCategories(db) {
+  const cats = new Set();
+  db.forEach(r => { const c = (r.category || '').trim(); if (c) cats.add(c); });
+  if (db.some(r => !(r.category || '').trim())) cats.add('未分类');
+  return [...cats];
+}
 
 // ==================== CONSTANTS ====================
 const TRANSLATION_DICT = {
@@ -619,6 +713,9 @@ const modalBox = $('modal-box');
 const toast = $('toast');
 const apiKeyInput = $('api-key-input');
 const btnApiKeySave = $('btn-api-key-save');
+const btnSave = $('btn-save');
+const btnPluginDb = $('btn-plugin-db');
+const dbImportFile = $('db-import-file');
 console.log('📎 DOM 引用已获取, btnFormat:', !!btnFormat, ', jsonInput:', !!jsonInput);
 
 // ==================== API KEY PERSISTENCE ====================
@@ -716,7 +813,7 @@ function showModal(html) {
   modalBox.innerHTML = html;
   modalOverlay.classList.add('active');
 }
-function closeModal() { modalOverlay.classList.remove('active'); }
+function closeModal() { modalOverlay.classList.remove('active'); btnPluginDb.classList.remove('active'); }
 // Expose to global scope for onclick handlers in modal HTML
 window.closeModal = closeModal;
 window.showModal = showModal;
@@ -788,81 +885,39 @@ $('header-help').addEventListener('click', () => {
 });
 
 // ==================== FORMAT & PARSE ====================
-console.log('🔗 正在绑定格式化按钮事件, btnFormat 存在:', !!btnFormat);
-btnFormat.addEventListener('click', async () => {
-  console.log('🔘 格式化按钮被点击');
-
-  try {
-    const raw = jsonInput.value.trim();
-    if (!raw) { showToast('请先粘贴 JSON 数据', 'warning'); return; }
-
-    // Check if there are existing selections
+function doFormat(raw, skipConfirm, skipTranslate) {
+  if (_apiAbortController) { _apiAbortController.abort(); _apiAbortController = null; }
+  if (!skipConfirm) {
     const hasSelections = state.leafEntries.some(e => e.state === 'selected' || e.state === 'previewed');
-    if (hasSelections) {
-      if (!confirm('将清空当前所有选择，确定？')) return;
-    }
-
-    // Reset
-    resetAll();
-
-    try {
-      state.parsedJson = JSON.parse(raw);
-    } catch (err) {
-      jsonInput.classList.add('error');
-      jsonErrorMsg.style.display = 'block';
-      const match = err.message.match(/position\s+(\d+)/);
-      let msg = 'JSON 格式错误: ' + err.message;
-      if (match) {
-        const pos = parseInt(match[1]);
-        const lines = raw.substring(0, pos).split('\n');
-        const line = lines.length;
-        const col = lines[lines.length-1].length + 1;
-        msg += `\n位置: 第 ${line} 行, 第 ${col} 列`;
-      }
-      jsonErrorMsg.textContent = msg;
-      return;
-    }
-
-    jsonInput.classList.remove('error');
-    jsonErrorMsg.style.display = 'none';
-    state.isFormatting = true;
-
-    console.log('📦 JSON 解析成功，构建树...');
-
-    // Build tree
-    state.treeNodes = buildTreeNode(null, state.parsedJson, '$');
-    renderTree([state.treeNodes]);
-
-    // Extract leaf paths
-    state.leafEntries = [];
-    extractLeafPaths([state.treeNodes], []);
-    console.log('🌿 提取到 ' + state.leafEntries.length + ' 个叶子路径');
-
-    // Pre-fill quick translations (dict + auto), then render buttons immediately
-    prefillTranslations();
-
-    // Render buttons NOW - don't wait for API
-    renderSelectorButtons();
-    searchBox.disabled = false;
-    btnSelectAll.disabled = false;
-    btnInvert.disabled = false;
-    btnClear.disabled = false;
-    btnFilterEmpty.disabled = false;
-    btnFilterEmpty.classList.remove('active');
-    filterEmptyActive = false;
-    btnTranslation.disabled = false;
-    renderOutput();
-
-    // Fire API translation in background (will update buttons when done)
-    translateWithAPI();
-
-    state.isFormatting = false;
-    debugLog('🟢系统', '#8B5CF6', '格式化完成: ' + state.leafEntries.length + ' 个叶子字段, ' + Object.keys(state.translationCache).length + ' 条预填充翻译');
-  } catch (err) {
-    console.error('❌ 格式化出错:', err);
-    showToast('格式化出错: ' + err.message, 'error');
-    state.isFormatting = false;
+    if (hasSelections) { if (!confirm('将清空当前所有选择，确定？')) return false; }
   }
+  resetAll();
+  try { state.parsedJson = JSON.parse(raw); }
+  catch (err) {
+    jsonInput.classList.add('error'); jsonErrorMsg.style.display = 'block';
+    const match = err.message.match(/position\s+(\d+)/);
+    let msg = 'JSON 格式错误: ' + err.message;
+    if (match) { const pos = parseInt(match[1]); const lines = raw.substring(0, pos).split('\n'); const line = lines.length; const col = lines[lines.length - 1].length + 1; msg += '\n位置: 第 ' + line + ' 行, 第 ' + col + ' 列'; }
+    jsonErrorMsg.textContent = msg; return false;
+  }
+  jsonInput.classList.remove('error'); jsonErrorMsg.style.display = 'none';
+  state.treeNodes = buildTreeNode(null, state.parsedJson, '$');
+  renderTree([state.treeNodes]);
+  state.leafEntries = []; extractLeafPaths([state.treeNodes], []);
+  prefillTranslations();
+  renderSelectorButtons();
+  searchBox.disabled = false; btnSelectAll.disabled = false; btnInvert.disabled = false; btnClear.disabled = false;
+  btnFilterEmpty.disabled = false; btnFilterEmpty.classList.remove('active'); filterEmptyActive = false;
+  btnTranslation.disabled = false; btnSave.disabled = false;
+  renderOutput(); updateDbBadge();
+  if (!skipTranslate) translateWithAPI();
+  debugLog('🟢系统', '#8B5CF6', '格式化完成: ' + state.leafEntries.length + ' 个叶子字段');
+  return true;
+}
+btnFormat.addEventListener('click', () => {
+  const raw = jsonInput.value.trim();
+  if (!raw) { showToast('请先粘贴 JSON 数据', 'warning'); return; }
+  doFormat(raw, false, false);
 });
 
 function resetAll() {
@@ -881,6 +936,7 @@ function resetAll() {
   filterEmptyActive = false;
   btnTranslation.disabled = true;
   btnTranslation.textContent = '翻译对照表';
+  btnSave.disabled = true;
   outputFieldsList.innerHTML = '<div class="empty-state-msg">← 请在中间选择要抽取的字段</div>';
   setOutputCode({ fields: {} });
   progressBar.style.display = 'none';
@@ -1117,12 +1173,13 @@ function prefillTranslations() {
 // 后台 API 翻译 → 完成后原地更新按钮文字
 async function translateWithAPI() {
   const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) { setApiStatus('无 API Key'); debugLog('🤖API', '#EF4444', '❌ 未设置 API Key，跳过后台翻译'); return; }
+  if (!apiKey) { setApiStatus('无 API Key'); return; }
 
   const uniqueKeys = [...new Set(state.leafEntries.map(e => e.keyName))];
   const total = uniqueKeys.length;
   setApiStatus('翻译中 0/' + total);
-  debugLog('🤖API', '#8B5CF6', '开始后台翻译 ' + total + ' 个字段 | Key=' + apiKey.substring(0,6) + '...');
+
+  _apiAbortController = new AbortController();;
 
   // Animated progress counter — ticks up toward ~95% to leave final jump
   let progressCount = 0;
@@ -1136,8 +1193,7 @@ async function translateWithAPI() {
   }, 120);
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => _apiAbortController.abort(), 15000);
     const prompt = `Translate ALL these field names to concise Chinese. Return ONLY a JSON object: {"field1":"翻译1","field2":"翻译2",...}. No markdown. Fields: ${JSON.stringify(uniqueKeys)}`;
     debugLog('🤖API', '#8B5CF6', '发送请求', '请求体' + prompt.length + '字');
     const resp = await fetch('https://api.deepseek.com/chat/completions', {
@@ -1148,7 +1204,7 @@ async function translateWithAPI() {
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.05, max_tokens: 8192,
       }),
-      signal: controller.signal,
+      signal: _apiAbortController.signal,
     });
     clearTimeout(timeoutId);
     clearInterval(progressTimer);
@@ -2082,8 +2138,10 @@ function renderOutput() {
   if (selected.length === 0) {
     outputFieldsList.innerHTML = '<div class="empty-state-msg">← 请在中间选择要抽取的字段</div>';
     setOutputCode({ fields: {} });
+    btnSave.disabled = true;
   } else {
     setOutputCode({ fields });
+    btnSave.disabled = false;
   }
 }
 
@@ -2187,6 +2245,321 @@ if (!localStorage.getItem('douyin_onboarding_done')) {
     `);
   }, 600);
 }
+
+// ==================== PLUGIN DB — SAVE ====================
+function buildCurrentFields() {
+  const fields = {};
+  for (const e of state.leafEntries) {
+    if (e.state === 'selected') fields[e.outputKey] = e.wildcardPath || buildFullPath(e);
+  }
+  return fields;
+}
+function getSelectedCount() {
+  return state.leafEntries.filter(e => e.state === 'selected').length;
+}
+
+btnSave.addEventListener('click', () => {
+  const selCount = getSelectedCount();
+  if (!selCount) { showToast('请先在中间选择要抽取的字段', 'warning'); return; }
+  const raw = jsonInput.value.trim();
+  if (!raw) { showToast('请先粘贴 JSON 数据', 'warning'); return; }
+  try { JSON.parse(raw); } catch { showToast('JSON 格式错误，无法保存', 'error'); return; }
+  if (getStorageSize(loadDB()) + raw.length * 2 > 4 * 1024 * 1024) { showToast('存储空间不足（接近 4MB），请清理旧记录', 'warning'); return; }
+  if (_saveCooldown) return; _saveCooldown = true; setTimeout(() => _saveCooldown = false, 1000);
+
+  const db = loadDB();
+  const categories = [...new Set(db.map(r => (r.category || '').trim()).filter(Boolean))];
+  const catOptions = categories.map(c => `<option value="${escHtml(c)}">`).join('');
+
+  showModal(`
+    <h3>保存插件配置</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+      <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">名称 *</div>
+        <input type="text" id="save-name" placeholder="输入配置名称" maxlength="80" />
+      </div>
+      <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">描述</div>
+        <input type="text" id="save-desc" placeholder="可选描述内容" maxlength="200" />
+      </div>
+      <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">分类</div>
+        <input type="text" id="save-cat" list="save-cat-list" placeholder="输入或选择分类" maxlength="40" />
+        <datalist id="save-cat-list">${catOptions}</datalist>
+      </div>
+      <div class="field-count-hint">将保存 ${selCount} 个字段</div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeModal()">取消</button>
+      <button class="modal-btn primary" id="save-confirm-btn">保存</button>
+    </div>
+  `);
+  const saveBtn = document.getElementById('save-confirm-btn');
+  const nameInput = document.getElementById('save-name');
+  nameInput.addEventListener('input', () => { saveBtn.disabled = !nameInput.value.trim(); });
+  saveBtn.disabled = true;
+  saveBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) return;
+    const desc = document.getElementById('save-desc').value.trim();
+    const cat = (document.getElementById('save-cat').value || '').trim();
+    const newRecord = {
+      id: Date.now(),
+      name, desc, category: cat || '未分类',
+      rawJson: jsonInput.value,
+      fields: JSON.parse(JSON.stringify(buildCurrentFields())),
+      createdAt: new Date().toISOString()
+    };
+    db.push(newRecord);
+    saveDB(db);
+    closeModal();
+    updateDbBadge();
+    const size = (getStorageSize(db) / 1024).toFixed(1);
+    showToast('已保存：' + name + '（' + selCount + '字段，约' + size + 'KB）');
+  });
+});
+
+// ==================== PLUGIN DB — DIALOG ====================
+let _dbPage = 1, _dbSort = 'time', _dbSortAsc = false, _dbSearch = '', _dbCat = '全部';
+const PAGE_SIZE = 20;
+
+function renderDBDialog() {
+  const db = loadDB();
+  const cats = getCategories(db);
+  if (!cats.includes('全部')) cats.unshift('全部');
+  if (!_dbCat || !cats.includes(_dbCat)) _dbCat = '全部';
+
+  let filtered = [...db];
+  if (_dbCat !== '全部') filtered = filtered.filter(r => (r.category || '未分类') === _dbCat);
+  if (_dbSearch) {
+    const q = _dbSearch.toLowerCase().split(/\s+/).filter(Boolean);
+    filtered = filtered.filter(r => {
+      const text = ((r.name || '') + ' ' + (r.desc || '')).toLowerCase();
+      return q.every(w => text.includes(w));
+    });
+  }
+  filtered.sort((a, b) => {
+    if (_dbSort === 'name') return _dbSortAsc ? a.name.localeCompare(b.name, 'zh-CN') : b.name.localeCompare(a.name, 'zh-CN');
+    if (_dbSort === 'id') return _dbSortAsc ? a.id - b.id : b.id - a.id;
+    return _dbSortAsc ? new Date(a.createdAt) - new Date(b.createdAt) : new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (_dbPage > totalPages) _dbPage = totalPages;
+  const page = filtered.slice((_dbPage - 1) * PAGE_SIZE, _dbPage * PAGE_SIZE);
+
+  const catTabs = cats.map(c => `<span class="db-tab${c === _dbCat ? ' active' : ''}" data-cat="${escHtml(c)}">${escHtml(c)}${c !== '全部' ? ' (' + filtered.filter(r => (r.category || '未分类') === c).length + ')' : ''}</span>`).join('');
+
+  let sortBtns = '';
+  const sorts = { id: '编号', name: '名称', time: '时间' };
+  for (const [k, v] of Object.entries(sorts)) {
+    const active = _dbSort === k;
+    sortBtns += `<button class="db-sort-btn${active ? ' active' : ''}" data-sort="${k}">${v}${active ? (_dbSortAsc ? '↑' : '↓') : ''}</button>`;
+  }
+
+  let tableBody;
+  if (filtered.length === 0) {
+    tableBody = _dbSearch
+      ? `<tr><td colspan="6"><div class="empty-state-box"><div class="empty-icon">🔍</div>未找到匹配 "${escHtml(_dbSearch)}" 的配置</div></td></tr>`
+      : `<tr><td colspan="6"><div class="empty-state-box"><div class="empty-icon">📦</div>暂无保存的插件配置</div></td></tr>`;
+  } else {
+    tableBody = page.map(r => `<tr>
+      <td style="font-family:var(--font-mono);color:var(--c-text-muted);">${r.id}</td>
+      <td title="${escHtml(r.name)}">${escHtml(r.name)}</td>
+      <td title="${escHtml(r.desc || '')}">${escHtml(r.desc || '-')}</td>
+      <td>${escHtml(r.category || '未分类')}</td>
+      <td style="font-family:var(--font-mono);font-size:10px;color:var(--c-text-muted);">${new Date(r.createdAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+      <td><div class="db-actions">
+        <button class="db-btn" data-view="${r.id}" title="回填字段到当前页面">查看</button>
+        <button class="db-btn danger" data-del="${r.id}" title="删除此记录">✕</button>
+      </div></td>
+    </tr>`).join('');
+  }
+
+  const pagination = filtered.length <= PAGE_SIZE ? '' : `
+    <div class="db-pagination">
+      <button data-pg="${_dbPage - 1}" ${_dbPage <= 1 ? 'disabled' : ''}>◀</button>
+      <span>${_dbPage} / ${totalPages}</span>
+      <button data-pg="${_dbPage + 1}" ${_dbPage >= totalPages ? 'disabled' : ''}>▶</button>
+    </div>`;
+
+  showModal(`
+    <h3>插件数据库</h3>
+    <input class="db-search" id="db-search-input" placeholder="搜索名称或描述..." value="${escHtml(_dbSearch)}" />
+    <div class="db-tabs" id="db-tabs">${catTabs}</div>
+    <div class="db-sort-bar" id="db-sort-bar"><span class="sort-label">排序：</span>${sortBtns}</div>
+    <div class="db-table-wrap"><table class="db-table"><thead><tr><th>#</th><th>名称</th><th>描述</th><th>分类</th><th>时间</th><th>操作</th></tr></thead><tbody>${tableBody}</tbody></table></div>
+    ${pagination}
+    <div class="db-bottom-bar">
+      <div class="db-io-btns">
+        <button class="btn-sm" id="btn-export-db">导出</button>
+        <button class="btn-sm" id="btn-import-db">导入</button>
+      </div>
+      <button class="modal-btn primary" onclick="closeModal()">关闭</button>
+    </div>
+  `);
+
+  // Bind sort
+  document.querySelectorAll('.db-sort-btn').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.sort;
+    if (_dbSort === k) _dbSortAsc = !_dbSortAsc; else { _dbSort = k; _dbSortAsc = false; }
+    renderDBDialog();
+  }));
+  // Bind tabs
+  document.querySelectorAll('.db-tab').forEach(t => t.addEventListener('click', () => {
+    _dbCat = t.dataset.cat; _dbPage = 1; renderDBDialog();
+  }));
+  // Bind search
+  const si = document.getElementById('db-search-input'); si.focus();
+  let _dbSearchTimer;
+  si.addEventListener('input', () => {
+    clearTimeout(_dbSearchTimer);
+    _dbSearchTimer = setTimeout(() => { _dbSearch = si.value; _dbPage = 1; renderDBDialog(); }, 200);
+  });
+  // Bind pagination
+  document.querySelectorAll('[data-pg]').forEach(b => b.addEventListener('click', () => {
+    _dbPage = parseInt(b.dataset.pg); renderDBDialog();
+  }));
+  // Bind view
+  document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+    viewRecord(parseInt(b.dataset.view));
+  }));
+  // Bind delete
+  document.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    const id = parseInt(b.dataset.del);
+    const rec = db.find(r => r.id === id);
+    if (!rec) return;
+    if (confirm('确定删除「' + rec.name + '」？此操作不可恢复。')) {
+      const newDb = db.filter(r => r.id !== id);
+      saveDB(newDb);
+      updateDbBadge();
+      renderDBDialog();
+    }
+  }));
+  // Bind edit (double-click name or desc)
+  document.querySelectorAll('[data-view]').forEach(b => {
+    const row = b.closest('tr');
+    if (!row) return;
+    let clickTimer;
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; editRecord(parseInt(b.dataset.view)); return; }
+      clickTimer = setTimeout(() => { clickTimer = null; }, 300);
+    });
+  });
+  // Bind export
+  document.getElementById('btn-export-db').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(loadDB(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'douyin-plugin-db.json'; a.click();
+    showToast('已导出 ' + loadDB().length + ' 条记录');
+  });
+  // Bind import
+  document.getElementById('btn-import-db').addEventListener('click', () => dbImportFile.click());
+}
+
+function editRecord(id) {
+  const db = loadDB();
+  const rec = db.find(r => r.id === id);
+  if (!rec) return;
+  const catOptions = [...new Set(db.map(r => (r.category || '').trim()).filter(Boolean))].map(c => `<option value="${escHtml(c)}">`).join('');
+  showModal(`
+    <h3>编辑插件配置</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+      <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">名称 *</div>
+        <input type="text" id="edit-name" value="${escHtml(rec.name)}" maxlength="80" />
+      </div>
+      <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">描述</div>
+        <input type="text" id="edit-desc" value="${escHtml(rec.desc || '')}" maxlength="200" />
+      </div>
+      <div><div style="font-size:11px;color:var(--c-text-dim);margin-bottom:3px;">分类</div>
+        <input type="text" id="edit-cat" list="edit-cat-list" value="${escHtml(rec.category || '')}" maxlength="40" />
+        <datalist id="edit-cat-list">${catOptions}</datalist>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeModal()">取消</button>
+      <button class="modal-btn primary" id="edit-confirm-btn">更新</button>
+    </div>
+  `);
+  const saveBtn = document.getElementById('edit-confirm-btn');
+  const nameInput = document.getElementById('edit-name');
+  saveBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) return;
+    rec.name = name;
+    rec.desc = document.getElementById('edit-desc').value.trim();
+    rec.category = (document.getElementById('edit-cat').value || '').trim() || '未分类';
+    saveDB(db);
+    closeModal();
+    updateDbBadge();
+    renderDBDialog();
+    showToast('已更新：' + name);
+  });
+}
+
+function viewRecord(id) {
+  const db = loadDB();
+  const rec = db.find(r => r.id === id);
+  if (!rec) return;
+  if (!rec.rawJson) { showToast('此记录为旧版本，不支持回填', 'warning'); return; }
+  try { JSON.parse(rec.rawJson); } catch { showToast('此记录 JSON 已损坏，无法回填', 'error'); return; }
+  closeModal();
+  jsonInput.value = rec.rawJson;
+  doFormat(rec.rawJson, true, true);
+  searchBox.value = '';
+  const fieldCount = rec.fields ? Object.keys(rec.fields).length : 0;
+  let matched = 0;
+  if (rec.fields) {
+    for (const [okey, jpath] of Object.entries(rec.fields)) {
+      const hasWildcard = /\*/.test(jpath);
+      const searchPath = hasWildcard ? jpath.replace(/\[\*\]/, '[0]') : jpath;
+      const entry = state.leafEntries.find(e => e.fullJsonPath === searchPath);
+      if (entry) {
+        entry.state = 'selected';
+        if (hasWildcard) entry.wildcardPath = jpath;
+        matched++;
+      }
+    }
+  }
+  refreshAll(); renderOutput(); updateDbBadge();
+  if (matched === 0) showToast('当前 JSON 与保存时不同，0 个字段可加载', 'warning');
+  else if (matched < fieldCount) showToast('已加载 ' + matched + '/' + fieldCount + ' 个字段（' + (fieldCount - matched) + ' 个不匹配）');
+  else showToast('已加载：' + rec.name + '（' + matched + '个字段）');
+}
+
+// Open plugin DB
+btnPluginDb.addEventListener('click', () => {
+  _dbPage = 1; _dbSearch = ''; _dbCat = '全部'; _dbSort = 'time'; _dbSortAsc = false;
+  renderDBDialog();
+  btnPluginDb.classList.add('active');
+});
+
+// Import file handler
+dbImportFile.addEventListener('change', () => {
+  const file = dbImportFile.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!Array.isArray(imported)) throw new Error('格式错误');
+      const db = loadDB();
+      const existingIds = new Set(db.map(r => r.id));
+      let added = 0, skipped = 0;
+      for (const r of imported) {
+        if (!r.id || !r.name) continue;
+        if (existingIds.has(r.id)) skipped++;
+        else { db.push(r); added++; existingIds.add(r.id); }
+      }
+      saveDB(db); updateDbBadge();
+      showToast('导入完成：新增 ' + added + ' 条，跳过 ' + skipped + ' 条重复');
+      if (modalOverlay.classList.contains('active') && modalBox.innerHTML.includes('插件数据库')) renderDBDialog();
+    } catch { showToast('文件格式错误，无法导入', 'error'); }
+  };
+  reader.readAsText(file);
+  dbImportFile.value = '';
+});
+
+// Enable save button when fields are selected (called after renderOutput)
+updateDbBadge();
 
 }); // DOMContentLoaded
 </script>
