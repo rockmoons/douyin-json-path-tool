@@ -2912,6 +2912,12 @@ function doSearch(term, skipDebounce, fromTag) {
 function executeSearch(term, fromTag) {
   for (const e of state.leafEntries) { if (e.state === 'previewed') e.state = 'default'; }
   clearAllHighlights(); applySearchFilter(); expandAllMiddleGroups();
+  // Scroll input to first visible entry
+  const firstVis = state.leafEntries.find(e => {
+    const btn = selectorButtons.querySelector(`.leaf-btn[data-id="${e.id}"]`);
+    return btn && btn.style.display !== 'none';
+  });
+  if (firstVis) scrollInputToField(firstVis);
   // Only record search history for user-typed searches (not tag button clicks) and skip array indices
   if (!fromTag && !/^\[\d+\]$/.test(term) && term.length >= 1) {
     const vis = selectorButtons.querySelectorAll('.leaf-btn:not([style*="display: none"])');
