@@ -2289,14 +2289,18 @@ btnSave.addEventListener('click', () => {
   const catInputId = 'save-cat-new';
 
   const catOpts = categories.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
-  const catSection = categories.length > 0
-    ? `<select id="${catSelectId}" class="db-select" style="width:100%;margin-bottom:4px;" onchange="(function(){const v=this.value;const n=document.getElementById('${catInputId}');if(v==='__new__'){n.style.display='block';n.focus();}else{n.style.display='none';}})()">
+  let catSection, catInputHTML;
+  if (categories.length > 0) {
+    catSection = `<select id="${catSelectId}" class="db-select" style="width:100%;margin-bottom:4px;" onchange="(function(){const v=this.value;const n=document.getElementById('${catInputId}');if(v==='__new__'){n.style.display='block';n.focus();}else{n.style.display='none';}})()">
           <option value="">不选择</option>
           ${catOpts}
           <option value="__new__" style="color:var(--c-primary);">+ 新分类</option>
-        </select>`
-    : `<div style="font-size:11px;color:var(--c-text-muted);margin-bottom:4px;">暂无分类，输入名称即可创建</div>`;
-  const catInputHTML = `<input type="text" id="${catInputId}" class="db-input" placeholder="输入新分类名称" maxlength="40" style="display:none;" />`;
+        </select>`;
+    catInputHTML = `<input type="text" id="${catInputId}" class="db-input" placeholder="输入新分类名称" maxlength="40" style="display:none;" />`;
+  } else {
+    catSection = '';
+    catInputHTML = `<input type="text" id="${catInputId}" class="db-input" placeholder="输入分类名称（首次创建）" maxlength="40" />`;
+  }
 
   showModal(`
     <h3>保存插件配置</h3>
@@ -2497,14 +2501,18 @@ function editRecord(id) {
   const catSelectId = 'edit-cat-select'; const catInputId = 'edit-cat-new';
   const curCat = (rec.category || '').trim();
   const catOpts = categories.map(c => `<option value="${escHtml(c)}"${c===curCat?' selected':''}>${escHtml(c)}</option>`).join('');
-  const catSection = categories.length > 0
-    ? `<select id="${catSelectId}" class="db-select" style="width:100%;margin-bottom:4px;" onchange="(function(){const v=this.value;const n=document.getElementById('${catInputId}');if(v==='__new__'){n.style.display='block';n.focus();}else{n.style.display='none';}})()">
+  let catSection, catInputHTML;
+  if (categories.length > 0) {
+    catSection = `<select id="${catSelectId}" class="db-select" style="width:100%;margin-bottom:4px;" onchange="(function(){const v=this.value;const n=document.getElementById('${catInputId}');if(v==='__new__'){n.style.display='block';n.focus();}else{n.style.display='none';}})()">
           <option value="">不选择</option>
           ${catOpts}
           <option value="__new__" style="color:var(--c-primary);">+ 新分类</option>
-        </select>`
-    : `<div style="font-size:11px;color:var(--c-text-muted);margin-bottom:4px;">暂无分类，输入名称即可创建</div>`;
-  const catInputHTML = `<input type="text" id="${catInputId}" class="db-input" placeholder="输入新分类名称" maxlength="40" style="display:none;" />`;
+        </select>`;
+    catInputHTML = `<input type="text" id="${catInputId}" class="db-input" placeholder="输入新分类名称" maxlength="40" style="display:none;" />`;
+  } else {
+    catSection = '';
+    catInputHTML = `<input type="text" id="${catInputId}" class="db-input" placeholder="输入分类名称（首次创建）" maxlength="40" />`;
+  }
 
   showModal(`
     <h3>编辑插件配置</h3>
