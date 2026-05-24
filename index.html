@@ -682,208 +682,6 @@ function getCategories(db) {
   return [...cats];
 }
 
-// ==================== SEARCH HELPERS (outside DOMContentLoaded) ====================
-const $ = id => document.getElementById(id);
-
-// ==================== SEARCH HISTORY & FREQUENT FIELDS ====================
-function loadSearchHistory() { try { return JSON.parse(localStorage.getItem('douyin_search_history')) || []; } catch { return []; } }
-function saveSearchHistory(h) { try { localStorage.setItem('douyin_search_history', JSON.stringify(h.slice(0, 20))); } catch {} }
-function loadFrequentFields() { try { return JSON.parse(localStorage.getItem('douyin_frequent_fields')) || []; } catch { return []; } }
-function saveFrequentFields(f) { try { localStorage.setItem('douyin_frequent_fields', JSON.stringify(f.slice(0, 20))); } catch {} }
-
-function updateStorageRate() {
-  try {
-    let total = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith('douyin_')) total += (localStorage.getItem(k) || '').length * 2;
-    }
-    const pct = Math.round(total / (5 * 1024 * 1024) * 100);
-    const el = $('header-storage');
-    if (!el) return;
-    if (pct === 0) { el.textContent = ''; el.className = ''; }
-    else {
-      el.textContent = '\u00B7 存储 ' + pct + '%';
-      el.className = pct > 90 ? 'danger' : pct > 70 ? 'warn' : '';
-    }
-    el.title = '已用 ' + (total / 1024).toFixed(1) + 'KB / 5MB';
-    return total < 4 * 1024 * 1024;
-  } catch { const el = $('header-storage'); if (el) { el.textContent = '\u00B7 存储 不可用'; el.className = 'warn'; } return false; }
-}
-
-function renderSearchExtras() {
-  const hb = $('hist-body'), fb = $('freq-body');
-  const hl = $('hist-label'), fl = $('freq-label');
-  if (!hb || !fb) return;
-
-  const hist = loadSearchHistory();
-  hl.textContent = '搜索历史 (' + hist.length + ')';
-  hb.innerHTML = hist.map(w => `<span class="search-tag hist" data-word="${escHtml(w)}">${escHtml(w)}<span class="tag-x" data-del="hist" data-word="${escHtml(w)}">×</span></span>`).join('');
-
-  const freq = loadFrequentFields().sort((a, b) => b.count - a.count);
-  fl.textContent = '常用字段 (' + freq.length + ')';
-  fb.innerHTML = freq.map(f => `<span class="search-tag freq" data-word="${escHtml(f.key)}">${escHtml(f.key)}<span class="tag-x" data-del="freq" data-word="${escHtml(f.key)}">×</span></span>`).join('');
-
-  // Bind tag clicks
-  hb.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
-    if (e.target.classList.contains('tag-x')) return;
-    doSearch(t.dataset.word);
-  }));
-  fb.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
-    if (e.target.classList.contains('tag-x')) return;
-    doSearch(t.dataset.word);
-  }));
-  // Bind delete
-  hb.querySelectorAll('.tag-x').forEach(x => x.addEventListener('click', e => {
-    e.stopPropagation();
-    const w = x.dataset.word;
-    const h = loadSearchHistory().filter(v => v !== w);
-    saveSearchHistory(h);
-    renderSearchExtras();
-  }));
-  fb.querySelectorAll('.tag-x').forEach(x => x.addEventListener('click', e => {
-    e.stopPropagation();
-    const w = x.dataset.word;
-    const f = loadFrequentFields().filter(v => v.key !== w);
-    saveFrequentFields(f);
-    renderSearchExtras();
-  }));
-
-  // Restore expand/collapse state
-  const histOpen = localStorage.getItem('douyin_hist_open') === '1';
-  const freqOpen = localStorage.getItem('douyin_freq_open') === '1';
-  hb.classList.toggle('collapsed', !histOpen);
-  fb.classList.toggle('collapsed', !freqOpen);
-  const ht = $('hist-title'), ft = $('freq-title');
-  if (ht) ht.querySelector('.arrow')?.classList.toggle('open', histOpen);
-  if (ft) ft.querySelector('.arrow')?.classList.toggle('open', freqOpen);
-}
-
-// Expand/collapse toggle for search extras
-['hist', 'freq'].forEach(type => {
-  const titleEl = $(type + '-title');
-  if (!titleEl) return;
-  titleEl.addEventListener('click', () => {
-    const body = $(type + '-body');
-    if (!body) return;
-    const arrow = titleEl.querySelector('.arrow');
-    const isOpen = !body.classList.contains('collapsed');
-    body.classList.toggle('collapsed', isOpen);
-    if (arrow) arrow.classList.toggle('open', !isOpen);
-    localStorage.setItem('douyin_' + type + '_open', isOpen ? '0' : '1');
-  });
-});
-
-function doSearch(term, skipDebounce) {
-  if (!term || !term.trim()) return;
-  const sb = $('search-box'); if (!sb) return;
-  sb.value = term.trim();
-  if (!skipDebounce) {
-    clearTimeout(sb._debounce);
-    sb._debounce = setTimeout(() => executeSearch(term.trim()), 200);
-  } else {
-    executeSearch(term.trim());
-  }
-}
-function executeSearch(term) {
-  for (const e of state.leafEntries) { if (e.state === 'previewed') e.state = 'default'; }
-  clearAllHighlights();
-  applySearchFilter();
-  expandAllMiddleGroups();
-  // Record search history if results found
-  const sb2 = $('selector-buttons');
-  const vis = sb2 ? sb2.querySelectorAll('.leaf-btn:not([style*="display: none"])') : [];
-  if (vis.length > 0 && term.length >= 1) {
-    let hist = loadSearchHistory().filter(v => v !== term);
-    hist.unshift(term);
-    saveSearchHistory(hist);
-    renderSearchExtras();
-  }
-  updateStorageRate();
-}
-
-
-
-// Search button
-btnDoSearch.addEventListener('click', () => {
-  const sb = $('search-box'); if (!sb) return;
-  const q = sb.value.trim();
-  if (!q) return;
-  if (btnAiToggle.classList.contains('active')) {
-    aiSearch(q);
-  } else {
-    doSearch(q, true);
-  }
-});
-
-// ==================== AI SEARCH ====================
-let _aiSearchCount = 0;
-let _aiSearchReset = Date.now();
-let _aiSearching = false;
-
-async function aiSearch(query) {
-  if (_aiSearching) return;
-  if (!state.leafEntries.length) { showToast('请先格式化 JSON', 'warning'); return; }
-  const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) { showToast('请先填写 API Key', 'warning'); btnAiToggle.classList.remove('active'); btnAiToggle.textContent = 'AI'; return; }
-  const now = Date.now();
-  if (now - _aiSearchReset > 60000) { _aiSearchCount = 0; _aiSearchReset = now; }
-  if (_aiSearchCount >= 5) { showToast('AI 搜索限流（5次/分钟）', 'warning'); return; }
-  _aiSearchCount++; _aiSearching = true;
-  btnDoSearch.textContent = '搜索中...'; btnDoSearch.disabled = true;
-
-  const fields = [...new Set(state.leafEntries.map(e => e.keyName))].slice(0, 200);
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    const resp = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [{ role: 'user', content: '字段列表：' + JSON.stringify(fields) + '。用户描述："' + query + '"。请从字段列表中找到最匹配的1-3个字段名。只返回JSON数组格式：["field1","field2"]。无匹配返回[]。' }],
-        temperature: 0.05, max_tokens: 256
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    const data = await resp.json();
-    const content = data.choices?.[0]?.message?.content || '[]';
-    const match = content.match(/\[[\s\S]*\]/);
-    const found = match ? JSON.parse(match[0]) : [];
-    const valid = found.filter(f => state.leafEntries.some(e => e.keyName === f));
-    if (valid.length > 0) {
-      doSearch(valid.join(' '), true);
-      showToast('AI 找到 ' + valid.length + ' 个匹配字段');
-    } else {
-      showToast('AI 未找到匹配字段，尝试更具体的描述', 'warning');
-    }
-  } catch { showToast('AI 服务暂不可用', 'error'); }
-  _aiSearching = false;
-  btnDoSearch.textContent = 'AI 搜索'; btnDoSearch.disabled = false;
-}
-
-// AI toggle
-btnAiToggle.addEventListener('click', () => {
-  if (!state.leafEntries.length) { showToast('请先格式化 JSON', 'warning'); return; }
-  const active = !btnAiToggle.classList.contains('active');
-  btnAiToggle.classList.toggle('active', active);
-  btnAiToggle.textContent = 'AI';
-  const sb = $('search-box'); if (sb) sb.placeholder = active ? '描述你想要的字段...' : '搜索字段（英文 / 中文）...';
-  btnDoSearch.textContent = active ? 'AI 搜索' : '搜索';
-});
-
-// Enable search button and AI when formatted
-function enableSearchBar() {
-  const sb = $('search-box'); if (sb) { sb.disabled = false; sb.placeholder = '搜索字段（英文 / 中文）...'; }
-  btnDoSearch.disabled = false;
-  btnAiToggle.disabled = false;
-  btnAiToggle.classList.remove('active'); btnAiToggle.textContent = 'AI';
-  btnDoSearch.textContent = '搜索';
-  renderSearchExtras();
-  updateStorageRate();
-}
-
 // ==================== CONSTANTS ====================
 const TRANSLATION_DICT = {
   code:'状态码', request_id:'请求ID', message:'消息', time:'时间', router:'路由',
@@ -2980,6 +2778,159 @@ dbImportFile.addEventListener('change', () => {
 
 // Enable save button when fields are selected (called after renderOutput)
 updateDbBadge();
+
+// ==================== SEARCH HISTORY & FREQUENT FIELDS ====================
+function loadSearchHistory() { try { return JSON.parse(localStorage.getItem('douyin_search_history')) || []; } catch { return []; } }
+function saveSearchHistory(h) { try { localStorage.setItem('douyin_search_history', JSON.stringify(h.slice(0, 20))); } catch {} }
+function loadFrequentFields() { try { return JSON.parse(localStorage.getItem('douyin_frequent_fields')) || []; } catch { return []; } }
+function saveFrequentFields(f) { try { localStorage.setItem('douyin_frequent_fields', JSON.stringify(f.slice(0, 20))); } catch {} }
+
+function updateStorageRate() {
+  try {
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('douyin_')) total += (localStorage.getItem(k) || '').length * 2;
+    }
+    const pct = Math.round(total / (5 * 1024 * 1024) * 100);
+    if (pct === 0) { headerStorage.textContent = ''; headerStorage.className = ''; }
+    else {
+      headerStorage.textContent = '\u00B7 存储 ' + pct + '%';
+      headerStorage.className = pct > 90 ? 'danger' : pct > 70 ? 'warn' : '';
+    }
+    headerStorage.title = '已用 ' + (total / 1024).toFixed(1) + 'KB / 5MB';
+    return total < 4 * 1024 * 1024;
+  } catch { headerStorage.textContent = '\u00B7 存储 不可用'; headerStorage.className = 'warn'; return false; }
+}
+
+function renderSearchExtras() {
+  const hist = loadSearchHistory();
+  histLabel.textContent = '搜索历史 (' + hist.length + ')';
+  histBody.innerHTML = hist.map(w => `<span class="search-tag hist" data-word="${escHtml(w)}">${escHtml(w)}<span class="tag-x" data-del="hist" data-word="${escHtml(w)}">×</span></span>`).join('');
+
+  const freq = loadFrequentFields().sort((a, b) => b.count - a.count);
+  freqLabel.textContent = '常用字段 (' + freq.length + ')';
+  freqBody.innerHTML = freq.map(f => `<span class="search-tag freq" data-word="${escHtml(f.key)}">${escHtml(f.key)}<span class="tag-x" data-del="freq" data-word="${escHtml(f.key)}">×</span></span>`).join('');
+
+  histBody.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
+    if (e.target.classList.contains('tag-x')) return;
+    doSearch(t.dataset.word);
+  }));
+  freqBody.querySelectorAll('.search-tag').forEach(t => t.addEventListener('click', e => {
+    if (e.target.classList.contains('tag-x')) return;
+    doSearch(t.dataset.word);
+  }));
+  histBody.querySelectorAll('.tag-x').forEach(x => x.addEventListener('click', e => {
+    e.stopPropagation();
+    const h = loadSearchHistory().filter(v => v !== x.dataset.word);
+    saveSearchHistory(h); renderSearchExtras();
+  }));
+  freqBody.querySelectorAll('.tag-x').forEach(x => x.addEventListener('click', e => {
+    e.stopPropagation();
+    const f = loadFrequentFields().filter(v => v.key !== x.dataset.word);
+    saveFrequentFields(f); renderSearchExtras();
+  }));
+
+  const histOpen = localStorage.getItem('douyin_hist_open') === '1';
+  const freqOpen = localStorage.getItem('douyin_freq_open') === '1';
+  histBody.classList.toggle('collapsed', !histOpen);
+  freqBody.classList.toggle('collapsed', !freqOpen);
+  const ht = $('hist-title'), ft = $('freq-title');
+  if (ht) ht.querySelector('.arrow')?.classList.toggle('open', histOpen);
+  if (ft) ft.querySelector('.arrow')?.classList.toggle('open', freqOpen);
+}
+
+['hist','freq'].forEach(type => {
+  $(type + '-title').addEventListener('click', () => {
+    const body = $(type + '-body'), arrow = $(type + '-title').querySelector('.arrow');
+    const isOpen = !body.classList.contains('collapsed');
+    body.classList.toggle('collapsed', isOpen);
+    if (arrow) arrow.classList.toggle('open', !isOpen);
+    localStorage.setItem('douyin_' + type + '_open', isOpen ? '0' : '1');
+  });
+});
+
+function doSearch(term, skipDebounce) {
+  if (!term || !term.trim()) return;
+  searchBox.value = term.trim();
+  if (!skipDebounce) {
+    clearTimeout(searchBox._debounce);
+    searchBox._debounce = setTimeout(() => executeSearch(term.trim()), 200);
+  } else { executeSearch(term.trim()); }
+}
+function executeSearch(term) {
+  for (const e of state.leafEntries) { if (e.state === 'previewed') e.state = 'default'; }
+  clearAllHighlights(); applySearchFilter(); expandAllMiddleGroups();
+  const vis = selectorButtons.querySelectorAll('.leaf-btn:not([style*="display: none"])');
+  if (vis.length > 0 && term.length >= 1) {
+    let hist = loadSearchHistory().filter(v => v !== term);
+    hist.unshift(term); saveSearchHistory(hist); renderSearchExtras();
+  }
+  updateStorageRate();
+}
+
+btnDoSearch.addEventListener('click', () => {
+  const q = searchBox.value.trim();
+  if (!q) return;
+  if (btnAiToggle.classList.contains('active')) aiSearch(q);
+  else doSearch(q, true);
+});
+
+// ==================== AI SEARCH ====================
+let _aiSearchCount = 0, _aiSearchReset = Date.now(), _aiSearching = false;
+
+async function aiSearch(query) {
+  if (_aiSearching) return;
+  if (!state.leafEntries.length) { showToast('请先格式化 JSON', 'warning'); return; }
+  const apiKey = apiKeyInput.value.trim();
+  if (!apiKey) { showToast('请先填写 API Key', 'warning'); btnAiToggle.classList.remove('active'); btnAiToggle.textContent = 'AI'; return; }
+  const now = Date.now();
+  if (now - _aiSearchReset > 60000) { _aiSearchCount = 0; _aiSearchReset = now; }
+  if (_aiSearchCount >= 5) { showToast('AI 搜索限流（5次/分钟）', 'warning'); return; }
+  _aiSearchCount++; _aiSearching = true;
+  btnDoSearch.textContent = '搜索中...'; btnDoSearch.disabled = true;
+
+  const fields = [...new Set(state.leafEntries.map(e => e.keyName))].slice(0, 200);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const resp = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: '字段列表：' + JSON.stringify(fields) + '。用户描述："' + query + '"。请从字段列表中找到最匹配的1-3个字段名。只返回JSON数组格式：["field1","field2"]。无匹配返回[]。' }], temperature: 0.05, max_tokens: 256 }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content || '[]';
+    const match = content.match(/\[[\s\S]*\]/);
+    const found = match ? JSON.parse(match[0]) : [];
+    const valid = found.filter(f => state.leafEntries.some(e => e.keyName === f));
+    if (valid.length > 0) { doSearch(valid.join(' '), true); showToast('AI 找到 ' + valid.length + ' 个匹配字段'); }
+    else { showToast('AI 未找到匹配字段，尝试更具体的描述', 'warning'); }
+  } catch { showToast('AI 服务暂不可用', 'error'); }
+  _aiSearching = false;
+  btnDoSearch.textContent = 'AI 搜索'; btnDoSearch.disabled = false;
+}
+
+btnAiToggle.addEventListener('click', () => {
+  if (!state.leafEntries.length) { showToast('请先格式化 JSON', 'warning'); return; }
+  const active = !btnAiToggle.classList.contains('active');
+  btnAiToggle.classList.toggle('active', active);
+  btnAiToggle.textContent = 'AI';
+  searchBox.placeholder = active ? '描述你想要的字段...' : '搜索字段（英文 / 中文）...';
+  btnDoSearch.textContent = active ? 'AI 搜索' : '搜索';
+});
+
+function enableSearchBar() {
+  searchBox.disabled = false; searchBox.placeholder = '搜索字段（英文 / 中文）...';
+  btnDoSearch.disabled = false;
+  btnAiToggle.disabled = false;
+  btnAiToggle.classList.remove('active'); btnAiToggle.textContent = 'AI';
+  btnDoSearch.textContent = '搜索';
+  renderSearchExtras();
+  updateStorageRate();
+}
 
 }); // DOMContentLoaded
 </script>
