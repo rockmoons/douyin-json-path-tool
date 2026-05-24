@@ -2369,7 +2369,7 @@ btnSave.addEventListener('click', () => {
 let _dbPage = 1, _dbSort = 'time', _dbSortAsc = false, _dbSearch = '', _dbCat = '全部';
 const PAGE_SIZE = 20;
 
-function renderDBDialog() {
+function renderDBDialog(firstOpen) {
   const db = loadDB();
   const cats = getCategories(db);
   if (!cats.includes('全部')) cats.unshift('全部');
@@ -2403,13 +2403,32 @@ function renderDBDialog() {
     sortBtns += `<button class="db-sort-btn${active ? ' active' : ''}" data-sort="${k}">${v}${active ? (_dbSortAsc ? '↑' : '↓') : ''}</button>`;
   }
 
-  let tableBody;
-  if (filtered.length === 0) {
-    tableBody = _dbSearch
-      ? `<tr><td colspan="6"><div class="empty-state-box"><div class="empty-icon">🔍</div>未找到匹配 "${escHtml(_dbSearch)}" 的配置</div></td></tr>`
-      : `<tr><td colspan="6"><div class="empty-state-box"><div class="empty-icon">📦</div>暂无保存的插件配置</div></td></tr>`;
-  } else {
-    tableBody = page.map(r => `<tr>
+  // Build table body
+  function buildTableBody() {
+    const db2 = loadDB();
+    let f2 = [...db2];
+    if (_dbCat !== '全部') f2 = f2.filter(r => (r.category || '未分类') === _dbCat);
+    if (_dbSearch) {
+      const q = _dbSearch.toLowerCase().split(/\s+/).filter(Boolean);
+      f2 = f2.filter(r => {
+        const text = ((r.name || '') + ' ' + (r.desc || '')).toLowerCase();
+        return q.every(w => text.includes(w));
+      });
+    }
+    f2.sort((a, b) => {
+      if (_dbSort === 'name') return _dbSortAsc ? a.name.localeCompare(b.name, 'zh-CN') : b.name.localeCompare(a.name, 'zh-CN');
+      if (_dbSort === 'id') return _dbSortAsc ? a.id - b.id : b.id - a.id;
+      return _dbSortAsc ? new Date(a.createdAt) - new Date(b.createdAt) : new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    const tp = Math.max(1, Math.ceil(f2.length / PAGE_SIZE));
+    if (_dbPage > tp) _dbPage = tp;
+    const pg = f2.slice((_dbPage - 1) * PAGE_SIZE, _dbPage * PAGE_SIZE);
+    if (f2.length === 0) {
+      return _dbSearch
+        ? `<tr><td colspan="6"><div class="empty-state-box"><div class="empty-icon">🔍</div>未找到匹配 "${escHtml(_dbSearch)}" 的配置</div></td></tr>`
+        : `<tr><td colspan="6"><div class="empty-state-box"><div class="empty-icon">📦</div>暂无保存的插件配置</div></td></tr>`;
+    }
+    return pg.map(r => `<tr>
       <td style="font-family:var(--font-mono);color:var(--c-text-muted);">${r.id}</td>
       <td title="${escHtml(r.name)}">${escHtml(r.name)}</td>
       <td title="${escHtml(r.desc || '')}">${escHtml(r.desc || '-')}</td>
@@ -2422,14 +2441,9 @@ function renderDBDialog() {
     </tr>`).join('');
   }
 
-  const pagination = filtered.length <= PAGE_SIZE ? '' : `
-    <div class="db-pagination">
-      <button data-pg="${_dbPage - 1}" ${_dbPage <= 1 ? 'disabled' : ''}>◀</button>
-      <span>${_dbPage} / ${totalPages}</span>
-      <button data-pg="${_dbPage + 1}" ${_dbPage >= totalPages ? 'disabled' : ''}>▶</button>
-    </div>`;
-
-  showModal(`
+  // If first time or dialog not shown: build full content
+  if (firstOpen || !modalOverlay.classList.contains('active') || !modalBox.innerHTML.includes('插件数据库')) {
+    showModal(`
     <h3>插件数据库</h3>
     <input class="db-search" id="db-search-input" placeholder="搜索名称或描述..." value="${escHtml(_dbSearch)}" />
     <div class="db-tabs" id="db-tabs">${catTabs}</div>
@@ -2444,7 +2458,38 @@ function renderDBDialog() {
       <button class="modal-btn primary" onclick="closeModal()">关闭</button>
     </div>
   `);
+  initDBEvents();
+  } else {
+    // Already open: only refresh table + pagination, keep search input intact
+    const tbl = document.querySelector('.db-table tbody');
+    const pg = document.querySelector('.db-pagination, .db-pagination-stub');
+    if (tbl) tbl.innerHTML = buildTableBody();
+    if (pg) {
+      const f2 = loadDB();
+      let f3 = [...f2];
+      if (_dbCat !== '全部') f3 = f3.filter(r => (r.category || '未分类') === _dbCat);
+      if (_dbSearch) {
+        const q = _dbSearch.toLowerCase().split(/\s+/).filter(Boolean);
+        f3 = f3.filter(r => ((r.name || '') + ' ' + (r.desc || '')).toLowerCase().includes(q.join(' ')));
+      }
+      f3.sort((a, b) => {
+        if (_dbSort === 'name') return _dbSortAsc ? a.name.localeCompare(b.name, 'zh-CN') : b.name.localeCompare(a.name, 'zh-CN');
+        if (_dbSort === 'id') return _dbSortAsc ? a.id - b.id : b.id - a.id;
+        return _dbSortAsc ? new Date(a.createdAt) - new Date(b.createdAt) : new Date(b.createdAt) - new Date(a.createdAt);
+      });
+      const tp = Math.max(1, Math.ceil(f3.length / PAGE_SIZE));
+      const html = f3.length <= PAGE_SIZE ? '' : `<div class="db-pagination">
+        <button data-pg="${_dbPage - 1}" ${_dbPage <= 1 ? 'disabled' : ''}>◀</button>
+        <span>${_dbPage} / ${tp}</span>
+        <button data-pg="${_dbPage + 1}" ${_dbPage >= tp ? 'disabled' : ''}>▶</button>
+      </div>`;
+      pg.outerHTML = html || '<div class="db-pagination-stub"></div>';
+    }
+    initDBEvents();
+  }
+}
 
+function initDBEvents() {
   // Bind sort
   document.querySelectorAll('.db-sort-btn').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.sort;
@@ -2455,13 +2500,15 @@ function renderDBDialog() {
   document.querySelectorAll('.db-tab').forEach(t => t.addEventListener('click', () => {
     _dbCat = t.dataset.cat; _dbPage = 1; renderDBDialog();
   }));
-  // Bind search
-  const si = document.getElementById('db-search-input'); si.focus();
-  let _dbSearchTimer;
-  si.addEventListener('input', () => {
-    clearTimeout(_dbSearchTimer);
-    _dbSearchTimer = setTimeout(() => { _dbSearch = si.value; _dbPage = 1; renderDBDialog(); }, 200);
-  });
+  // Bind search (only binds fresh if input exists)
+  const si = document.getElementById('db-search-input');
+  if (si) {
+    let _dbSearchTimer;
+    si.addEventListener('input', () => {
+      clearTimeout(_dbSearchTimer);
+      _dbSearchTimer = setTimeout(() => { _dbSearch = si.value; _dbPage = 1; renderDBDialog(); }, 200);
+    });
+  }
   // Bind pagination
   document.querySelectorAll('[data-pg]').forEach(b => b.addEventListener('click', () => {
     _dbPage = parseInt(b.dataset.pg); renderDBDialog();
@@ -2473,13 +2520,14 @@ function renderDBDialog() {
   // Bind delete
   document.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
     const id = parseInt(b.dataset.del);
-    const rec = db.find(r => r.id === id);
-    if (!rec) return;
-    if (confirm('确定删除「' + rec.name + '」？此操作不可恢复。')) {
-      const newDb = db.filter(r => r.id !== id);
+    const db2 = loadDB();
+    const rec2 = db2.find(r => r.id === id);
+    if (!rec2) return;
+    if (confirm('确定删除「' + rec2.name + '」？此操作不可恢复。')) {
+      const newDb = db2.filter(r => r.id !== id);
       saveDB(newDb);
       updateDbBadge();
-      renderDBDialog();
+      renderDBDialog(true);
     }
   }));
   // Bind edit (double-click name or desc)
@@ -2493,15 +2541,16 @@ function renderDBDialog() {
       clickTimer = setTimeout(() => { clickTimer = null; }, 300);
     });
   });
-  // Bind export
-  document.getElementById('btn-export-db').addEventListener('click', () => {
+  // Bind export (delegate to avoid stale references)
+  document.getElementById('btn-export-db') && document.getElementById('btn-export-db').addEventListener('click', (e) => {
+    e.stopPropagation();
     const blob = new Blob([JSON.stringify(loadDB(), null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = 'douyin-plugin-db.json'; a.click();
     showToast('已导出 ' + loadDB().length + ' 条记录');
   });
   // Bind import
-  document.getElementById('btn-import-db').addEventListener('click', () => dbImportFile.click());
+  document.getElementById('btn-import-db') && document.getElementById('btn-import-db').addEventListener('click', () => dbImportFile.click());
 }
 
 function editRecord(id) {
@@ -2601,7 +2650,7 @@ function viewRecord(id) {
 // Open plugin DB
 btnPluginDb.addEventListener('click', () => {
   _dbPage = 1; _dbSearch = ''; _dbCat = '全部'; _dbSort = 'time'; _dbSortAsc = false;
-  renderDBDialog();
+  renderDBDialog(true);
   btnPluginDb.classList.add('active');
 });
 
