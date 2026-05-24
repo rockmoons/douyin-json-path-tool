@@ -2161,7 +2161,7 @@ document.body.appendChild(readyBadge);
 setTimeout(() => { readyBadge.style.transition='opacity 0.5s'; readyBadge.style.opacity='0'; setTimeout(() => readyBadge.remove(), 500); }, 3000);
 
 // ==================== FIRST-VISIT ONBOARDING ====================
-if (!localStorage.getItem('douyin_onboarding_seen')) {
+if (!localStorage.getItem('douyin_onboarding_done')) {
   setTimeout(() => {
     showModal(`
       <h3 style="font-size:16px;">快速上手</h3>
@@ -2180,7 +2180,7 @@ if (!localStorage.getItem('douyin_onboarding_seen')) {
         </div>
       </div>
       <div class="modal-actions">
-        <button class="modal-btn" onclick="localStorage.setItem('douyin_onboarding_seen','1');closeModal()" style="font-size:11px;color:var(--c-text-muted);">不再提醒</button>
+        <button class="modal-btn" onclick="localStorage.setItem('douyin_onboarding_done','1');closeModal()" style="font-size:11px;color:var(--c-text-muted);">不再提醒</button>
         <button class="modal-btn primary" onclick="closeModal()">知道了</button>
       </div>
     `);
