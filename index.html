@@ -2164,19 +2164,20 @@ setTimeout(() => { readyBadge.style.transition='opacity 0.5s'; readyBadge.style.
 if (!localStorage.getItem('douyin_onboarding_done')) {
   setTimeout(() => {
     showModal(`
-      <h3 style="font-size:16px;">快速上手</h3>
-      <div style="display:flex;flex-direction:column;gap:14px;margin:16px 0;">
-        <div style="display:flex;align-items:flex-start;gap:12px;">
-          <span style="flex-shrink:0;width:24px;height:24px;background:var(--c-primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">1</span>
-          <div style="line-height:1.6;"><b style="color:var(--c-text);">粘贴 JSON</b><br><span style="font-size:12px;color:var(--c-text-dim);">在左侧面板粘贴抖音 API 返回的 JSON，点击格式化</span></div>
+      <h3 style="font-size:16px;margin-bottom:4px;">快速上手</h3>
+      <p style="font-size:11px;color:var(--c-text-muted);margin-bottom:12px;">三栏工作流：粘贴 → 点选 → 输出</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--c-surface2);border-radius:var(--radius-sm);">
+          <span style="flex-shrink:0;width:22px;height:22px;background:var(--c-primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;">1</span>
+          <div style="line-height:1.5;"><b style="color:var(--c-text);font-size:12px;">粘贴 JSON，点格式化</b><br><span style="font-size:11px;color:var(--c-text-dim);">左侧输入框粘贴数据 → 点击格式化，生成结构树</span></div>
         </div>
-        <div style="display:flex;align-items:flex-start;gap:12px;">
-          <span style="flex-shrink:0;width:24px;height:24px;background:var(--c-primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">2</span>
-          <div style="line-height:1.6;"><b style="color:var(--c-text);">点选字段</b><br><span style="font-size:12px;color:var(--c-text-dim);">中间面板浏览字段树，点击一次预览，再点一次选中</span></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--c-surface2);border-radius:var(--radius-sm);">
+          <span style="flex-shrink:0;width:22px;height:22px;background:var(--c-primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;">2</span>
+          <div style="line-height:1.5;"><b style="color:var(--c-text);font-size:12px;">浏览并点选字段</b><br><span style="font-size:11px;color:var(--c-text-dim);">中间面板展开字段树 — 单击预览定位，再击即选中</span></div>
         </div>
-        <div style="display:flex;align-items:flex-start;gap:12px;">
-          <span style="flex-shrink:0;width:24px;height:24px;background:var(--c-success);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">3</span>
-          <div style="line-height:1.6;"><b style="color:var(--c-text);">复制输出</b><br><span style="font-size:12px;color:var(--c-text-dim);">右侧自动生成 JSONPath，可编辑 key 名称，一键复制</span></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--c-surface2);border-radius:var(--radius-sm);">
+          <span style="flex-shrink:0;width:22px;height:22px;background:var(--c-success);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;">3</span>
+          <div style="line-height:1.5;"><b style="color:var(--c-text);font-size:12px;">右侧取 JSONPath 输出</b><br><span style="font-size:11px;color:var(--c-text-dim);">自动生成映射表，可编辑 key 名，一键复制全量</span></div>
         </div>
       </div>
       <div class="modal-actions">
