@@ -166,41 +166,47 @@ body {
 /* ==================== Middle Panel ==================== */
 /* Freeze search + actions at top, buttons scroll below */
 #middle-panel .panel-body { display:flex; flex-direction:column; }
-#search-box {
-  width:100%; background: var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
-  color: var(--c-text); padding:7px 12px; font-size:12px; margin-bottom:8px; transition:border var(--transition-fast);
-  flex-shrink:0;
+
+/* Unified search toolbar */
+#search-bar {
+  display:flex; align-items:stretch; gap:0; margin-bottom:6px; flex-shrink:0;
+  border-radius:var(--radius-sm); overflow:hidden;
 }
-#search-box:focus { outline:none; border-color: var(--c-primary); }
-/* Search bar with AI toggle */
-#search-bar { display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-shrink:0; }
-#search-box { flex:1; }
+#search-bar:focus-within { box-shadow:0 0 0 2px var(--c-primary-glow); }
 #btn-ai-toggle {
-  padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600; cursor:pointer;
-  border:1px solid var(--c-border); background:var(--c-surface2); color:var(--c-text-muted);
+  padding:0 10px; font-size:10px; font-weight:700; cursor:pointer;
+  border:none; background:var(--c-surface2); color:var(--c-text-muted);
   transition:all var(--transition-fast); white-space:nowrap; flex-shrink:0;
+  min-height:34px; letter-spacing:0.3px; border-right:1px solid var(--c-border);
 }
 #btn-ai-toggle:hover:not(:disabled) { background:var(--c-border); color:var(--c-text); }
-#btn-ai-toggle.active { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
-#btn-ai-toggle:disabled { opacity:0.4; cursor:not-allowed; }
-#btn-do-search {
-  padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:500;
-  border:1px solid var(--c-border); background:var(--c-surface2); color:var(--c-text-dim);
-  transition:all var(--transition-fast); white-space:nowrap; flex-shrink:0;
+#btn-ai-toggle.active { background:var(--c-primary); color:#fff; border-right-color:var(--c-primary); }
+#btn-ai-toggle:disabled { opacity:0.35; cursor:not-allowed; }
+#search-box {
+  flex:1; min-width:0; border:none; background:var(--c-surface2); color:var(--c-text);
+  padding:0 12px; font-size:12px; font-family:var(--font-body); outline:none;
+  min-height:34px; line-height:34px;
 }
-#btn-do-search:hover { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+#search-box::placeholder { color:var(--c-text-muted); }
+#btn-do-search {
+  padding:0 14px; font-size:11px; font-weight:600; cursor:pointer;
+  border:none; background:var(--c-primary); color:#fff;
+  transition:all var(--transition-fast); white-space:nowrap; flex-shrink:0;
+  min-height:34px; letter-spacing:0.2px; border-left:1px solid var(--c-primary-dim);
+}
+#btn-do-search:hover { background:var(--c-primary-dim); }
 #btn-do-search:disabled { opacity:0.4; cursor:not-allowed; }
 /* Search extras */
 #search-extras { flex-shrink:0; margin-bottom:4px; }
 .search-extra-group { margin-bottom:3px; }
 .search-extra-title {
   font-size:10px; color:var(--c-text-muted); cursor:pointer; user-select:none;
-  display:inline-flex; align-items:center; gap:3px; padding:2px 0; transition:color var(--transition-fast);
+  display:inline-flex; align-items:center; gap:3px; padding:3px 0 3px 12px; transition:color var(--transition-fast);
 }
 .search-extra-title:hover { color:var(--c-text-dim); }
 .search-extra-title .arrow { font-size:9px; transition:transform var(--transition-fast); display:inline-block; }
 .search-extra-title .arrow.open { transform:rotate(90deg); }
-.search-extra-body { display:flex; flex-wrap:wrap; gap:4px; padding:3px 0; }
+.search-extra-body { display:flex; flex-wrap:wrap; gap:4px; padding:4px 0 4px 12px; }
 .search-extra-body.collapsed { display:none; }
 .search-tag {
   display:inline-flex; align-items:center; gap:3px;
@@ -557,11 +563,11 @@ body {
         </div>
         <div id="search-extras">
           <div class="search-extra-group" id="hist-group">
-            <span class="search-extra-title" id="hist-title">▸ <span id="hist-label">搜索历史 (0)</span></span>
+            <span class="search-extra-title" id="hist-title"><span class="arrow">▸</span> <span id="hist-label">搜索历史 (0)</span></span>
             <div class="search-extra-body collapsed" id="hist-body"></div>
           </div>
           <div class="search-extra-group" id="freq-group">
-            <span class="search-extra-title" id="freq-title">▸ <span id="freq-label">常用字段 (0)</span></span>
+            <span class="search-extra-title" id="freq-title"><span class="arrow">▸</span> <span id="freq-label">常用字段 (0)</span></span>
             <div class="search-extra-body collapsed" id="freq-body"></div>
           </div>
         </div>
