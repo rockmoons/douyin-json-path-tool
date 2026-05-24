@@ -64,7 +64,7 @@ body {
   border-radius:7px; display:flex; align-items:center; justify-content:center;
   font-size:14px; color:#fff; font-weight:700;
 }
-#header-left h1 { font-family: var(--font-display); font-size:15px; font-weight:700; letter-spacing:-0.3px; }
+#header-left h1 { font-family: var(--font-display); font-size:15px; font-weight:700; letter-spacing:-0.5px; }
 #header-right { display:flex; align-items:center; gap:10px; }
 #api-key-input {
   background: var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
@@ -73,16 +73,14 @@ body {
 }
 #api-key-input:focus { outline:none; border-color: var(--c-primary); box-shadow:0 0 0 3px var(--c-primary-glow); }
 #api-key-input::placeholder { color: var(--c-text-muted); }
-#api-key-save-label { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--c-text-muted); cursor:pointer; white-space:nowrap; user-select:none; }
-#api-key-save-label:hover { color:var(--c-text-dim); }
-#api-key-save { accent-color: var(--c-primary); cursor:pointer; }
 #header-version { font-size:11px; color: var(--c-text-muted); }
 #header-help { font-size:11px; color: var(--c-text-dim); cursor:pointer; transition:color var(--transition-fast); }
 #header-help:hover { color: var(--c-primary); }
 
 #main { display:flex; flex:1; overflow:hidden; gap:1px; background: var(--c-border); position:relative; }
-.resizer { width:1px; background:transparent; cursor:col-resize; transition:background 0.2s; z-index:10; }
-.resizer:hover, .resizer.resizing { background:var(--c-primary); }
+.resizer { width:1px; background:transparent; cursor:col-resize; transition:all 0.25s; z-index:10; position:relative; }
+.resizer::after { content:''; position:absolute; inset:-20px -4px; }
+.resizer:hover, .resizer.resizing { background:var(--c-primary); box-shadow:0 0 8px var(--c-primary-glow); }
 
 .panel {
   background: var(--c-surface); display:flex; flex-direction:column;
@@ -93,26 +91,42 @@ body {
   padding:10px 14px; border-bottom:1px solid var(--c-border); flex-shrink:0;
   background: var(--c-surface2);
 }
-.panel-header h2 { font-size:12px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase; color: var(--c-text-dim); }
+.panel-header h2 { font-size:12px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color: var(--c-text-dim); padding-left:10px; border-left:2px solid var(--c-primary); line-height:1; transition:border-color 0.3s; }
+.panel:hover .panel-header h2 { border-left-color:var(--c-primary-dim); }
 .panel-body { flex:1; overflow:auto; padding:12px; }
 .panel-footer { border-top:1px solid var(--c-border); padding:8px 12px; flex-shrink:0; font-size:11px; color:var(--c-text-muted); }
 
 /* ==================== Left Panel ==================== */
+/* Freeze input area at top, tree scrolls below */
+#left-panel .panel-body { display:flex; flex-direction:column; }
 #json-input {
   width:100%; min-height:180px; background: var(--c-surface2); border:1px solid var(--c-border);
   border-radius:var(--radius-sm); color: var(--c-text); padding:12px; font-family: var(--font-mono);
   font-size:12px; line-height:1.6; resize:vertical; transition:border var(--transition-fast);
+  flex-shrink:0;
 }
 #json-input:focus { outline:none; border-color: var(--c-primary); }
 #json-input.error { border-color: var(--c-error); box-shadow:0 0 0 3px rgba(239,68,68,0.15); }
-#json-error-msg { display:none; color: var(--c-error); font-size:11px; margin-top:6px; white-space:pre-wrap; }
-#btn-format {
-  margin-top:8px; width:100%; padding:8px; background: var(--c-primary); color:#fff;
-  border:none; border-radius:var(--radius-sm); font-size:12px; font-weight:600; cursor:pointer;
-  transition:all var(--transition-fast); letter-spacing:0.2px;
+/* Actions bar: toolbar + format button in one row */
+#json-actions-bar {
+  display:flex; align-items:center; gap:8px; margin-top:8px; flex-shrink:0;
+  padding:6px 10px; background: var(--c-surface2); border:1px solid var(--c-border);
+  border-radius:var(--radius-sm);
 }
-#btn-format:hover { background: var(--c-primary-dim); box-shadow:0 0 12px var(--c-primary-glow); }
-#tree-container { margin-top:10px; }
+#json-toolbar {
+  display:flex; align-items:center; gap:6px; flex-shrink:0;
+}
+#json-toolbar .btn-sm {
+  font-size:11px; padding:4px 8px;
+}
+#json-error-msg { display:none; color: var(--c-error); font-size:11px; margin-top:6px; white-space:pre-wrap; flex-shrink:0; }
+#btn-format {
+  flex:1; padding:6px 12px; background: var(--c-primary); color:#fff;
+  border:none; border-radius:var(--radius-sm); font-size:12px; font-weight:600; cursor:pointer;
+  transition:all var(--transition-fast); letter-spacing:0.3px; white-space:nowrap;
+}
+#btn-format:hover { background: var(--c-primary-dim); box-shadow:0 0 14px var(--c-primary-glow); }
+#tree-container { margin-top:10px; flex:1; overflow-y:auto; min-height:60px; }
 #tree-container .empty-state { text-align:center; padding:40px 20px; color: var(--c-text-muted); font-size:12px; }
 
 /* Tree styles */
@@ -150,29 +164,47 @@ body {
 }
 
 /* ==================== Middle Panel ==================== */
+/* Freeze search + actions at top, buttons scroll below */
+#middle-panel .panel-body { display:flex; flex-direction:column; }
 #search-box {
   width:100%; background: var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
   color: var(--c-text); padding:7px 12px; font-size:12px; margin-bottom:8px; transition:border var(--transition-fast);
+  flex-shrink:0;
 }
 #search-box:focus { outline:none; border-color: var(--c-primary); }
-#batch-actions { display:flex; gap:6px; margin-bottom:8px; }
-.btn-sm {
-  padding:5px 10px; border-radius:var(--radius-sm); font-size:11px; cursor:pointer;
-  border:1px solid var(--c-border); background: var(--c-surface2); color: var(--c-text-dim);
-  transition:all var(--transition-fast); font-weight:500;
+/* Middle panel actions bar — same style as left panel */
+#batch-actions {
+  display:flex; gap:6px; margin-bottom:8px; flex-shrink:0;
+  padding:6px 10px; background: var(--c-surface2); border:1px solid var(--c-border);
+  border-radius:var(--radius-sm);
 }
-.btn-sm:hover { background: var(--c-border); color: var(--c-text); }
+.btn-sm {
+  padding:4px 10px; border-radius:var(--radius-sm); font-size:11px; cursor:pointer;
+  border:1px solid var(--c-border); background: var(--c-surface); color: var(--c-text-dim);
+  transition:all var(--transition-fast); font-weight:500; white-space:nowrap;
+}
+/* First 3: compact, last 2: fill remaining */
+#btn-select-all, #btn-invert, #btn-clear { flex-shrink:0; }
+#btn-filter-empty, #btn-translation { flex:1; text-align:center; justify-content:center; }
+.btn-sm:hover { background: var(--c-border); color: var(--c-text); transform:translateY(-1px); }
+.btn-sm:active { transform: scale(0.96); transition: transform 0.08s; }
 #btn-clear:hover { border-color: var(--c-error); color: var(--c-error); }
 #btn-filter-empty.active { background: var(--c-error); color:#fff; border-color:var(--c-error); }
-#progress-bar { display:none; font-size:11px; color: var(--c-primary); margin-bottom:6px; text-align:center; }
-#selector-buttons { display:flex; flex-direction:column; gap:0; }
+#btn-translation { background: var(--c-primary); color:#fff; border-color:var(--c-primary); }
+#btn-translation:hover { background: var(--c-primary-dim); box-shadow:0 0 10px var(--c-primary-glow); }
+#btn-translation:disabled { background: var(--c-surface); color: var(--c-text-muted); border-color:var(--c-border); box-shadow:none; }
+/* Toggle button */
+.btn-toggle.active { background: var(--c-primary); color:#fff; border-color:var(--c-primary); }
+.btn-toggle.active:hover { background: var(--c-primary-dim); }
+#progress-bar { display:none; font-size:11px; color: var(--c-primary); margin-bottom:6px; text-align:center; flex-shrink:0; }
+#selector-buttons { display:flex; flex-direction:column; gap:0; flex:1; overflow-y:auto; min-height:60px; }
 /* Button tree groups */
 .btn-group { margin:0; }
 .btn-group-header {
   display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer;
   font-size:11px; color: var(--c-text-dim); border-bottom:1px solid var(--c-border);
   user-select:none; transition:background var(--transition-fast);
-  font-family:var(--font-mono); position:sticky; top:0; background:var(--c-surface); z-index:2;
+  font-family:var(--font-mono);
 }
 .btn-group-header:hover { background: var(--c-surface2); }
 .btn-group-header .grp-arrow {
@@ -184,6 +216,33 @@ body {
 .btn-group-header .grp-count { margin-left:auto; font-size:10px; color: var(--c-text-muted); }
 .btn-group-body { overflow:hidden; }
 .btn-group-body.collapsed { display:none; }
+/* Wildcard quick-select strip */
+.grp-wild-strip {
+  display:flex; align-items:center; gap:8px; padding:8px 12px;
+  background: linear-gradient(90deg, rgba(16,185,129,0.12), rgba(16,185,129,0.05));
+  border-bottom:1px solid rgba(16,185,129,0.18); flex-wrap:wrap;
+}
+.grp-wild-strip .wild-label {
+  color: #6ee7b7; font-weight:700; font-size:11px; white-space:nowrap;
+  font-family: var(--font-mono); flex-shrink:0;
+}
+.grp-wild-badge {
+  font-size:11px; padding:3px 10px; border-radius:5px;
+  background: rgba(16,185,129,0.2); color: #6ee7b7; cursor:pointer;
+  font-weight:600; font-family: var(--font-mono);
+  border:1px solid rgba(16,185,129,0.35); white-space:nowrap;
+  transition: all 0.15s; user-select:none; line-height:1.4; flex-shrink:0;
+}
+.grp-wild-badge:hover {
+  background: rgba(16,185,129,0.5); color: #fff;
+  border-color: rgba(16,185,129,0.7);
+  box-shadow: 0 0 10px rgba(16,185,129,0.35);
+  transform: translateY(-1px);
+}
+.grp-wild-badge:active {
+  transform: scale(0.94);
+  transition: transform 0.08s;
+}
 /* Leaf button - full width single row */
 .leaf-btn {
   display:flex; align-items:center; gap:6px; width:100%;
@@ -219,15 +278,9 @@ body {
 .leaf-btn .edit-idx { margin-left:auto; font-size:10px; cursor:pointer; color: inherit; flex-shrink:0; display:none; }
 .leaf-btn.state-previewed .edit-idx,
 .leaf-btn.state-selected .edit-idx { display:inline; }
-.empty-state-msg { text-align:center; padding:40px 20px; color: var(--c-text-muted); font-size:12px; }
+.empty-state-msg { text-align:center; padding:32px 24px; color: var(--c-text-muted); font-size:12px; border:1px dashed var(--c-border); border-radius:var(--radius-sm); background:rgba(255,255,255,0.012); margin:8px 0; }
 
-/* Translation table */
-#translation-table-wrap { margin-top:12px; }
-#translation-table-wrap h3 { font-size:11px; font-weight:600; color:var(--c-text-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px; }
-#translation-table { width:100%; border-collapse:collapse; font-size:11px; }
-#translation-table th { text-align:left; padding:4px 8px; color:var(--c-text-muted); font-weight:500; border-bottom:1px solid var(--c-border); }
-#translation-table td { padding:4px 8px; color: var(--c-text-dim); }
-#translation-table tr:nth-child(odd) td { background:rgba(255,255,255,0.015); }
+/* Translation source badges (used in modal) */
 .trans-source { font-size:9px; padding:1px 5px; border-radius:3px; margin-left:4px; }
 .trans-source.dict { background:rgba(139,92,246,0.2); color:#c4b5fd; }
 .trans-source.api  { background:rgba(16,185,129,0.2); color:#6ee7b7; }
@@ -252,6 +305,7 @@ body {
   background: var(--c-surface2); border:1px solid var(--c-border); border-radius:var(--radius-sm);
   padding:14px 16px; font-family:var(--font-mono); font-size:12px; line-height:1.8; color: #4ade80;
   white-space:pre-wrap; overflow:auto; max-height:400px; position:relative;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.25);
 }
 #btn-copy {
   position:absolute; top:8px; right:8px; padding:4px 10px; background: var(--c-primary); color:#fff;
@@ -298,6 +352,7 @@ body {
 .modal-btn.primary:hover { background: var(--c-primary-dim); }
 .modal-cancel { cursor:pointer; color:var(--c-text-muted); }
 .modal-cancel:hover { color:var(--c-text); }
+.modal-box table tr:nth-child(even) td { background:rgba(255,255,255,0.015); }
 
 /* ==================== Toast / Confirm Dialog ==================== */
 .toast {
@@ -322,7 +377,7 @@ body {
     </div>
     <div id="header-right">
       <input type="password" id="api-key-input" placeholder="DeepSeek API Key（用于 AI 翻译）" autocomplete="off" />
-      <label id="api-key-save-label" title="记住 API Key，刷新页面不丢失"><input type="checkbox" id="api-key-save" /> 记住</label>
+      <button class="btn-sm btn-toggle" id="btn-api-key-save" title="记住 API Key，刷新页面不丢失">记住</button>
       <span id="header-version">v1.0</span>
       <span id="header-help" title="使用说明">ⓘ 帮助</span>
     </div>
@@ -333,18 +388,18 @@ body {
 
     <!-- LEFT PANEL -->
     <div class="panel" id="left-panel">
-      <div class="panel-header"><h2>📄 JSON 元数据</h2></div>
+      <div class="panel-header"><h2>JSON 元数据</h2></div>
       <div class="panel-body">
         <textarea id="json-input" placeholder='在此粘贴抖音 API 返回的 JSON 元数据...'></textarea>
-        <div id="json-toolbar" style="display:flex;gap:6px;margin-top:4px;align-items:center;">
-          <button class="btn-sm" id="btn-clear-input" title="清空输入框">🗑 清空</button>
-          <button class="btn-sm" id="btn-copy-input" title="复制输入内容">📋 复制</button>
-          <label title="记住 JSON 内容，刷新不丢失" style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--c-text-muted);cursor:pointer;user-select:none;">
-            <input type="checkbox" id="json-input-save" style="accent-color:var(--c-primary);cursor:pointer;" /> 记住
-          </label>
+        <div id="json-actions-bar">
+          <div id="json-toolbar">
+            <button class="btn-sm" id="btn-clear-input" title="清空输入框">清空</button>
+            <button class="btn-sm" id="btn-copy-input" title="复制输入内容">复制</button>
+            <button class="btn-sm btn-toggle" id="btn-json-save" title="记住 JSON 内容，刷新不丢失">记住</button>
+          </div>
+          <button id="btn-format" type="button">格式化</button>
         </div>
         <div id="json-error-msg"></div>
-        <button id="btn-format" type="button">⚡ 格式化</button>
         <div id="tree-container"><div class="empty-state">等待 JSON 输入...</div></div>
       </div>
     </div>
@@ -353,23 +408,19 @@ body {
 
     <!-- MIDDLE PANEL -->
     <div class="panel" id="middle-panel">
-      <div class="panel-header"><h2>🔑 键名选择器</h2></div>
+      <div class="panel-header"><h2>键名选择器</h2></div>
       <div class="panel-body">
         <input type="text" id="search-box" placeholder="搜索字段（英文 / 中文）..." disabled />
         <div id="batch-actions">
           <button class="btn-sm" id="btn-select-all" disabled>全选</button>
           <button class="btn-sm" id="btn-invert" disabled>反选</button>
           <button class="btn-sm" id="btn-clear" disabled>清空</button>
-          <button class="btn-sm" id="btn-filter-empty" disabled title="仅显示有数据的字段">🔍 过滤空数据</button>
+          <button class="btn-sm" id="btn-filter-empty" disabled title="仅显示有数据的字段">过滤空数据</button>
+          <button class="btn-sm" id="btn-translation" disabled title="查看英文-中文翻译对照">翻译对照表</button>
         </div>
-        <div id="api-status" style="display:none;font-size:10px;padding:3px 8px;border-radius:4px;margin-bottom:4px;text-align:center;"></div>
         <div id="progress-bar"></div>
         <div id="selector-buttons">
           <div class="empty-state-msg">← 请先在左侧粘贴 JSON 并点击格式化</div>
-        </div>
-        <div id="translation-table-wrap" style="display:none;">
-          <h3>📋 翻译对照表</h3>
-          <table id="translation-table"><thead><tr><th>英文</th><th>中文</th><th>来源</th></tr></thead><tbody></tbody></table>
         </div>
       </div>
     </div>
@@ -378,14 +429,14 @@ body {
 
     <!-- RIGHT PANEL -->
     <div class="panel" id="right-panel">
-      <div class="panel-header"><h2>📤 JSONPath 输出</h2></div>
+      <div class="panel-header"><h2>JSONPath 输出</h2></div>
       <div class="panel-body">
         <div id="output-fields-list">
           <div class="empty-state-msg">← 请在中间选择要抽取的字段</div>
         </div>
         <div id="output-stats" style="display:none;"></div>
         <div id="output-code-block" style="position:relative;">
-          <button id="btn-copy">📋 一键复制</button>
+          <button id="btn-copy">一键复制</button>
           <code id="output-code">{ "fields": {} }</code>
         </div>
       </div>
@@ -546,7 +597,6 @@ const btnFormat = $('btn-format');
 const treeContainer = $('tree-container');
 const searchBox = $('search-box');
 const selectorButtons = $('selector-buttons');
-const apiStatus = $('api-status');
 const progressBar = $('progress-bar');
 const btnSelectAll = $('btn-select-all');
 const btnInvert = $('btn-invert');
@@ -554,43 +604,49 @@ const btnClear = $('btn-clear');
 const btnFilterEmpty = $('btn-filter-empty');
 const btnClearInput = $('btn-clear-input');
 const btnCopyInput = $('btn-copy-input');
-const jsonInputSave = $('json-input-save');
+const btnJsonSave = $('btn-json-save');
 const debugPanel = $('debug-panel');
 const debugLogEl = $('debug-log');
 const debugCount = $('debug-count');
 const btnDebugToggle = $('btn-debug-toggle');
+const btnTranslation = $('btn-translation');
 const outputFieldsList = $('output-fields-list');
 const outputCodeEl = $('output-code');
 const outputStats = $('output-stats');
 const btnCopy = $('btn-copy');
-const translationTableWrap = $('translation-table-wrap');
-const translationTableBody = $('translation-table').querySelector('tbody');
 const modalOverlay = $('modal-overlay');
 const modalBox = $('modal-box');
 const toast = $('toast');
 const apiKeyInput = $('api-key-input');
-const apiKeySave = $('api-key-save');
+const btnApiKeySave = $('btn-api-key-save');
 console.log('📎 DOM 引用已获取, btnFormat:', !!btnFormat, ', jsonInput:', !!jsonInput);
 
 // ==================== API KEY PERSISTENCE ====================
 // Load saved API Key
+function updateApiKeyBtnState() {
+  const active = btnApiKeySave.classList.contains('active');
+  btnApiKeySave.textContent = active ? '✓ 记住' : '记住';
+}
 const savedKey = localStorage.getItem('douyin_json_api_key');
 const savedSave = localStorage.getItem('douyin_json_api_key_save') === 'true';
 if (savedKey && savedSave) {
   apiKeyInput.value = savedKey;
-  apiKeySave.checked = true;
+  btnApiKeySave.classList.add('active');
+  updateApiKeyBtnState();
 }
 
-// Auto-save on input change when checkbox is checked
+// Auto-save on input change when toggle is active
 apiKeyInput.addEventListener('input', () => {
-  if (apiKeySave.checked) {
+  if (btnApiKeySave.classList.contains('active')) {
     localStorage.setItem('douyin_json_api_key', apiKeyInput.value);
   }
 });
 
 // Toggle save: immediately save or clear
-apiKeySave.addEventListener('change', () => {
-  if (apiKeySave.checked) {
+btnApiKeySave.addEventListener('click', () => {
+  btnApiKeySave.classList.toggle('active');
+  updateApiKeyBtnState();
+  if (btnApiKeySave.classList.contains('active')) {
     localStorage.setItem('douyin_json_api_key_save', 'true');
     localStorage.setItem('douyin_json_api_key', apiKeyInput.value);
   } else {
@@ -601,11 +657,16 @@ apiKeySave.addEventListener('change', () => {
 
 // ==================== JSON INPUT TOOLBAR ====================
 // Load saved JSON
+function updateJsonBtnState() {
+  const active = btnJsonSave.classList.contains('active');
+  btnJsonSave.textContent = active ? '✓ 记住' : '记住';
+}
 const savedJson = localStorage.getItem('douyin_json_input');
 const savedJsonSave = localStorage.getItem('douyin_json_input_save') === 'true';
 if (savedJson && savedJsonSave) {
   jsonInput.value = savedJson;
-  jsonInputSave.checked = true;
+  btnJsonSave.classList.add('active');
+  updateJsonBtnState();
 }
 
 // Clear JSON input
@@ -624,9 +685,11 @@ btnCopyInput.addEventListener('click', async () => {
   } catch { showToast('复制失败', 'error'); }
 });
 
-// Save JSON input to localStorage
-jsonInputSave.addEventListener('change', () => {
-  if (jsonInputSave.checked) {
+// Toggle save
+btnJsonSave.addEventListener('click', () => {
+  btnJsonSave.classList.toggle('active');
+  updateJsonBtnState();
+  if (btnJsonSave.classList.contains('active')) {
     localStorage.setItem('douyin_json_input_save', 'true');
     localStorage.setItem('douyin_json_input', jsonInput.value);
   } else {
@@ -635,7 +698,7 @@ jsonInputSave.addEventListener('change', () => {
   }
 });
 jsonInput.addEventListener('input', () => {
-  if (jsonInputSave.checked) {
+  if (btnJsonSave.classList.contains('active')) {
     localStorage.setItem('douyin_json_input', jsonInput.value);
   }
 });
@@ -787,6 +850,7 @@ btnFormat.addEventListener('click', async () => {
     btnFilterEmpty.disabled = false;
     btnFilterEmpty.classList.remove('active');
     filterEmptyActive = false;
+    btnTranslation.disabled = false;
     renderOutput();
 
     // Fire API translation in background (will update buttons when done)
@@ -815,10 +879,10 @@ function resetAll() {
   btnFilterEmpty.disabled = true;
   btnFilterEmpty.classList.remove('active');
   filterEmptyActive = false;
+  btnTranslation.disabled = true;
+  btnTranslation.textContent = '翻译对照表';
   outputFieldsList.innerHTML = '<div class="empty-state-msg">← 请在中间选择要抽取的字段</div>';
   setOutputCode({ fields: {} });
-  translationTableWrap.style.display = 'none';
-  translationTableBody.innerHTML = '';
   progressBar.style.display = 'none';
 }
 
@@ -1053,13 +1117,23 @@ function prefillTranslations() {
 // 后台 API 翻译 → 完成后原地更新按钮文字
 async function translateWithAPI() {
   const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) { progressBar.style.display = 'none'; setApiStatus('⚠️ 未设置 API Key，使用本地翻译', '#F59E0B'); debugLog('🤖API', '#EF4444', '❌ 未设置 API Key，跳过后台翻译'); return; }
+  if (!apiKey) { setApiStatus('无 API Key'); debugLog('🤖API', '#EF4444', '❌ 未设置 API Key，跳过后台翻译'); return; }
 
   const uniqueKeys = [...new Set(state.leafEntries.map(e => e.keyName))];
-  setApiStatus('🔄 正在调用 DeepSeek 翻译 ' + uniqueKeys.length + ' 个字段...', '#3B82F6');
-  progressBar.style.display = 'block';
-  progressBar.textContent = `后台翻译中: ${uniqueKeys.length} 个字段...`;
-  debugLog('🤖API', '#8B5CF6', '开始后台翻译 ' + uniqueKeys.length + ' 个字段 | Key=' + apiKey.substring(0,6) + '...');
+  const total = uniqueKeys.length;
+  setApiStatus('翻译中 0/' + total);
+  debugLog('🤖API', '#8B5CF6', '开始后台翻译 ' + total + ' 个字段 | Key=' + apiKey.substring(0,6) + '...');
+
+  // Animated progress counter — ticks up toward ~95% to leave final jump
+  let progressCount = 0;
+  let progressTimer = setInterval(() => {
+    if (progressCount < total * 0.95) {
+      const remaining = total - progressCount;
+      const increment = Math.max(1, Math.floor(Math.random() * Math.min(8, Math.ceil(remaining * 0.15))));
+      progressCount = Math.min(Math.ceil(total * 0.95), progressCount + increment);
+      setApiStatus('翻译中 ' + progressCount + '/' + total);
+    }
+  }, 120);
 
   try {
     const controller = new AbortController();
@@ -1077,6 +1151,7 @@ async function translateWithAPI() {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+    clearInterval(progressTimer);
 
     if (resp.ok) {
       const data = await resp.json();
@@ -1094,43 +1169,42 @@ async function translateWithAPI() {
               apiCount++;
             }
           }
-          setApiStatus('✅ API 翻译完成: ' + apiCount + '/' + uniqueKeys.length + ' 字段', apiCount === uniqueKeys.length ? '#10B981' : '#F59E0B');
-          debugLog('🤖API', '#8B5CF6', '翻译完成: ' + apiCount + '/' + uniqueKeys.length + ' 个字段', apiCount === uniqueKeys.length ? '✅ 全覆盖' : '⚠️ 漏翻字段已记录');
-          if (apiCount < uniqueKeys.length) {
+          debugLog('🤖API', '#8B5CF6', '翻译完成: ' + apiCount + '/' + total + ' 个字段', apiCount === total ? '✅ 全覆盖' : '⚠️ 漏翻字段已记录');
+          if (apiCount < total) {
             const missing = uniqueKeys.filter(k => !translations[k]);
             console.warn('⚠️ API 漏翻 ' + missing.length + ' 个:', missing.slice(0, 10));
           }
           updateButtonTranslations();
           renderTranslationTable(uniqueKeys);
+          setApiStatus('翻译完成 ' + apiCount + '/' + total);
         } catch (parseErr) {
-          setApiStatus('❌ API JSON 解析失败，使用本地翻译', '#EF4444');
+          clearInterval(progressTimer);
+          setApiStatus('翻译失败');
           debugLog('🤖API', '#EF4444', '❌ JSON 解析失败', parseErr.message);
           showToast('API 翻译解析失败，使用本地翻译', 'warning');
         }
       } else {
-        setApiStatus('❌ API 回复格式错误，使用本地翻译', '#EF4444');
+        clearInterval(progressTimer);
+        setApiStatus('翻译失败');
         debugLog('🤖API', '#EF4444', '❌ 回复中无JSON', '内容: ' + content.substring(0, 80));
       }
     } else {
+      clearInterval(progressTimer);
       const errText = await resp.text().catch(() => '');
-      setApiStatus('❌ HTTP ' + resp.status + '，使用本地翻译', '#EF4444');
+      setApiStatus('翻译失败');
       debugLog('🤖API', '#EF4444', '❌ HTTP ' + resp.status, errText.substring(0, 100));
       showToast('API 请求失败(' + resp.status + ')，使用本地翻译', 'warning');
     }
   } catch (e) {
-    setApiStatus('❌ 网络错误/超时，使用本地翻译', '#EF4444');
+    clearInterval(progressTimer);
+    setApiStatus('翻译失败');
     debugLog('🤖API', '#EF4444', '❌ 网络/超时错误', e.message);
     showToast('API 连接失败，使用本地翻译', 'warning');
   }
-  progressBar.style.display = 'none';
 }
 
-function setApiStatus(msg, color) {
-  apiStatus.style.display = 'block';
-  apiStatus.textContent = msg;
-  apiStatus.style.background = color + '22';
-  apiStatus.style.color = color;
-  apiStatus.style.border = '1px solid ' + color + '44';
+function setApiStatus(msg) {
+  btnTranslation.textContent = msg;
 }
 
 // 原地更新按钮中文文字
@@ -1173,19 +1247,39 @@ function autoTranslate(key) {
 }
 
 function renderTranslationTable(uniqueKeys) {
-  translationTableBody.innerHTML = '';
+  // Update button label with count
+  btnTranslation.textContent = '翻译对照表 (' + uniqueKeys.length + ')';
+  
+  // Build modal content
+  let rows = '';
   for (const key of uniqueKeys) {
     const source = state.translationSources[key] || 'local';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="font-family:var(--font-mono);">${escHtml(key)}</td>
-      <td>${escHtml(state.translationCache[key])}</td>
-      <td><span class="trans-source ${source}">${source === 'dict' ? '词典' : source === 'api' ? 'API' : '本地'}</span></td>
-    `;
-    translationTableBody.appendChild(tr);
+    const sourceLabel = source === 'dict' ? '词典' : source === 'api' ? 'API' : '本地';
+    rows += `<tr>
+      <td style="font-family:var(--font-mono);padding:7px 10px;line-height:1.6;">${escHtml(key)}</td>
+      <td style="padding:7px 10px;line-height:1.6;">${escHtml(state.translationCache[key])}</td>
+      <td style="padding:7px 10px;"><span class="trans-source ${source}">${sourceLabel}</span></td>
+    </tr>`;
   }
-  translationTableWrap.style.display = 'block';
+  state._translationTableHTML = rows; // stored for modal
 }
+
+// Show translation table modal
+btnTranslation.addEventListener('click', () => {
+  if (!state._translationTableHTML) return;
+  const stats = `${Object.keys(state.translationSources).filter(k => state.translationSources[k] === 'dict').length}词典 / ${Object.keys(state.translationSources).filter(k => state.translationSources[k] === 'api').length}API / ${Object.keys(state.translationSources).filter(k => state.translationSources[k] === 'local').length}本地`;
+  showModal(`
+    <h3>📋 翻译对照表</h3>
+    <div style="font-size:10px;color:var(--c-text-muted);margin-bottom:8px;">共 ${Object.keys(state.translationCache).length} 条 | ${stats}</div>
+    <div style="max-height:50vh;overflow-y:auto;border:1px solid var(--c-border);border-radius:var(--radius-sm);">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr><th style="text-align:left;padding:8px 10px;color:var(--c-text-muted);border-bottom:1px solid var(--c-border);position:sticky;top:0;background:var(--c-surface);">英文</th><th style="text-align:left;padding:8px 10px;color:var(--c-text-muted);border-bottom:1px solid var(--c-border);position:sticky;top:0;background:var(--c-surface);">中文</th><th style="text-align:left;padding:8px 10px;color:var(--c-text-muted);border-bottom:1px solid var(--c-border);position:sticky;top:0;background:var(--c-surface);">来源</th></tr></thead>
+        <tbody>${state._translationTableHTML}</tbody>
+      </table>
+    </div>
+    <div class="modal-actions"><button class="modal-btn primary" onclick="closeModal()">关闭</button></div>
+  `);
+});
 
 function escHtml(s) {
   const div = document.createElement('div');
@@ -1278,10 +1372,44 @@ function renderButtonsFromTreeNode(node, container, depth) {
       syncTreeToggle(node.path, 'middle', willExpand);
     }
   });
+
   group.appendChild(header);
 
   const body = document.createElement('div');
   body.className = 'btn-group-body';
+
+  // For object arrays: add prominent [*].field quick-select strip at the TOP of the body
+  if (node.type === 'array' && node.children.length > 0) {
+    const firstChild = node.children[0];
+    if (firstChild.type === 'object' && firstChild.children) {
+      const commonFields = firstChild.children.filter(c => c.isLeaf).map(c => c.key);
+      if (commonFields.length > 0) {
+        const wildStrip = document.createElement('div');
+        wildStrip.className = 'grp-wild-strip';
+        const wildLabel = document.createElement('span');
+        wildLabel.className = 'wild-label';
+        wildLabel.textContent = '⚡ 快速全选 [*].';
+        wildStrip.appendChild(wildLabel);
+        for (const f of commonFields) {
+          const wb = document.createElement('span');
+          wb.className = 'grp-wild-badge';
+          wb.textContent = f;
+          wb.title = '点击全选该数组所有元素的 "' + f + '" 字段（一键提取所有元素的此字段）';
+          wb.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            wb.style.background = 'rgba(16,185,129,0.7)';
+            wb.style.color = '#fff';
+            wb.style.transform = 'scale(0.92)';
+            setTimeout(() => { wb.style.background = ''; wb.style.color = ''; wb.style.transform = ''; }, 150);
+            selectAllArrayField(node.path, f);
+          });
+          wildStrip.appendChild(wb);
+        }
+        body.appendChild(wildStrip);
+      }
+    }
+  }
+
   for (const child of sorted) {
     renderButtonsFromTreeNode(child, body, depth + 1);
   }
@@ -1399,6 +1527,51 @@ function findNodeByPath(nodes, path) {
 }
 
 // ==================== BUTTON CLICK HANDLER ====================
+// Select [*].fieldname → single wildcard entry (not all concrete [N] entries)
+// Output: "fieldName": "$.arr[*].fieldName"
+function selectAllArrayField(arrPath, fieldName) {
+  const matching = state.leafEntries.filter(e => {
+    return e.keyName === fieldName && e.fullJsonPath.startsWith(arrPath + '[');
+  });
+  if (matching.length === 0) { showToast('未找到匹配的 ' + fieldName + ' 字段', 'warning'); return; }
+
+  // Check if already has a wildcard selection for this array+field
+  const wildcardEntry = matching.find(e => e.state === 'selected' && e.wildcardPath);
+  if (wildcardEntry) {
+    // Toggle OFF
+    wildcardEntry.state = 'default';
+    wildcardEntry.wildcardPath = null;
+    runDeDup();
+    refreshAll();
+    renderOutput();
+    showToast('已取消 ' + arrPath + '[*].' + fieldName);
+    debugLog('🔘全选', '#EF4444', '❌ 取消通配符 ' + arrPath + '[*].' + fieldName);
+    return;
+  }
+
+  // Toggle ON: deselect conflicting entries from same array+field (both wildcard & concrete)
+  const arrBase = arrPath;
+  for (const e of state.leafEntries) {
+    if ((e.state === 'selected' || e.state === 'previewed') && e.keyName === fieldName) {
+      const base = getArrayBasePath(e.fullJsonPath);
+      if (base === arrBase || e.fullJsonPath.startsWith(arrPath)) {
+        e.state = 'default';
+        e.wildcardPath = null;
+      }
+    }
+  }
+  // Select the first matching entry as the wildcard carrier
+  const first = matching[0];
+  first.state = 'selected';
+  first.wildcardPath = arrPath + '[*].' + fieldName;
+
+  runDeDup();
+  refreshAll();
+  renderOutput();
+  showToast('已选通配符 ' + arrPath + '[*].' + fieldName);
+  debugLog('🔘全选', '#10B981', `[*].${fieldName} → wildcardPath="${first.wildcardPath}"`, arrPath);
+}
+
 function handleBtnClick(entry) {
   const now = Date.now();
   if (now - state.lastClickTime < state.clickThrottle) return;
@@ -1430,6 +1603,7 @@ function handleBtnClick(entry) {
       for (const e of state.leafEntries) {
         if (e !== entry && e.state === 'selected' && getArrayBasePath(e.fullJsonPath) === arrBase) {
           e.state = 'default';
+          e.wildcardPath = null; // clear wildcard when replacing with concrete [N]
         }
       }
     }
@@ -1688,19 +1862,30 @@ function runDeDup() {
   const selected = state.leafEntries.filter(e => e.state === 'selected');
   if (selected.length < 2) return;
 
-  // Detect which outputKeys have conflicts
-  const keyCount = new Map();
-  for (const e of selected) keyCount.set(e.outputKey, (keyCount.get(e.outputKey)||0)+1);
+  // Group conflicting entries by outputKey
+  const groups = new Map();
+  for (const e of selected) {
+    if (!groups.has(e.outputKey)) groups.set(e.outputKey, []);
+    groups.get(e.outputKey).push(e);
+  }
 
-  // If no conflicts, nothing to do
-  const hasConflict = [...keyCount.values()].some(v => v > 1);
-  if (!hasConflict) return;
-
-  // For conflicting keys, abbreviate ALL entries in that group
-  for (const entry of selected) {
-    if (entry.userEdited) continue;
-    if (keyCount.get(entry.outputKey) > 1) {
-      entry.outputKey = abbreviateKey(entry);
+  // For each group with conflicts, check if they're from the same array
+  for (const [okey, entries] of groups) {
+    if (entries.length < 2) continue;
+    // If all entries are from the same array (different [N]), use index suffix
+    const bases = entries.map(e => e.fullJsonPath.replace(/\[\d+\]/g, '[_]'));
+    const allSameArray = bases.every(b => b === bases[0]);
+    if (allSameArray && !entries[0].userEdited) {
+      for (const e of entries) {
+        const idxMatch = e.fullJsonPath.match(/\[(\d+)\]/g);
+        const lastIdx = idxMatch ? idxMatch[idxMatch.length - 1].replace(/[\[\]]/g, '') : '';
+        e.outputKey = e.outputKey + '_' + lastIdx;
+      }
+      continue;
+    }
+    // Different arrays: abbreviate all
+    for (const e of entries) {
+      if (!e.userEdited) e.outputKey = abbreviateKey(e);
     }
   }
 
@@ -1788,7 +1973,7 @@ btnClear.addEventListener('click', () => {
 btnFilterEmpty.addEventListener('click', () => {
   filterEmptyActive = !filterEmptyActive;
   btnFilterEmpty.classList.toggle('active', filterEmptyActive);
-  btnFilterEmpty.textContent = filterEmptyActive ? '🔍 过滤中（仅显示有数据）' : '🔍 过滤空数据';
+  btnFilterEmpty.textContent = filterEmptyActive ? '过滤中…' : '过滤空数据';
   applyEmptyFilter();
 });
 
@@ -1831,7 +2016,7 @@ function updateOutputCodeOnly() {
   } else {
     const fields = {};
     for (const entry of selected) {
-      fields[entry.outputKey] = buildFullPath(entry);
+      fields[entry.outputKey] = entry.wildcardPath || buildFullPath(entry);
     }
     setOutputCode({ fields });
   }
@@ -1843,11 +2028,12 @@ function renderOutput() {
   const fields = {};
 
   for (const entry of selected) {
-    const fullPath = buildFullPath(entry);
+    const fullPath = entry.wildcardPath || buildFullPath(entry);
     fields[entry.outputKey] = fullPath;
 
     const row = document.createElement('div');
     row.className = 'output-field-row';
+    if (entry.wildcardPath) row.classList.add('wildcard-row');
 
     const keyInput = document.createElement('input');
     keyInput.className = 'output-key-input';
@@ -1863,6 +2049,10 @@ function renderOutput() {
 
     const pathDisplay = document.createElement('span');
     pathDisplay.className = 'output-path-display';
+    if (entry.wildcardPath) {
+      pathDisplay.style.cssText = 'color:#6ee7b7;font-weight:600;';
+      pathDisplay.setAttribute('data-wildcard', 'true');
+    }
     pathDisplay.textContent = fullPath;
 
     const removeBtn = document.createElement('span');
@@ -1901,10 +2091,10 @@ btnCopy.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(text);
     btnCopy.classList.add('copied');
-    btnCopy.textContent = '✓ 已复制';
+    btnCopy.textContent = '已复制';
     setTimeout(() => {
       btnCopy.classList.remove('copied');
-      btnCopy.textContent = '📋 一键复制';
+      btnCopy.textContent = '一键复制';
     }, 2000);
   } catch {
     showToast('复制失败，请手动选择', 'error');
